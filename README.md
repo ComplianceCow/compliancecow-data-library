@@ -4,8 +4,9 @@ You can use this library for consume data from compliancecow directly by making 
 
 # Things to remember!
 
-  - You can either give a credential file or pass it as dictionary while creating the client object.
-    ex: client.Client(filepath) or client.Client(credentialdict={})
+  - You can create the client object by the following.
+    ex: client.Client(auth_token = '') 
+    auth_token - token which is created by the user login
   - After that you can access the data by the given methods.
 
 ### Installation
