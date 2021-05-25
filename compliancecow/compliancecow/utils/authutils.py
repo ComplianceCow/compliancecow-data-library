@@ -14,6 +14,8 @@ def with_retry_for_auth_failure(fn):
         client = kwargs[0]
         newkwargs = kwargs[1:]
         response = fn(*newkwargs)
+        if dictutils.is_valid_key(response, "Message") and response['Message'] == 'UNAUTHORIZED':
+            return {'error': 'Token expired'}
         # if dictutils.is_valid_key(response, "Message") or response.status_code:
         #     authorize_client(client)
         #     response = fn(*newkwargs)

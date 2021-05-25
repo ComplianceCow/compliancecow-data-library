@@ -11,7 +11,7 @@ import base64
 import pyarrow as pa
 
 from compliancecow.utils import constants, dictutils, authutils, utils, wsutils, validateutils
-from compliancecow.models import configuration
+from compliancecow.models import configuration, cowreport
 # from compliancecow.data import metadata
 
 
@@ -247,6 +247,117 @@ class Client:
                         configuration.Configuration.from_dict, responseJson.get(constants.Items))
 
         return configurations, errors
+
+    def get_dashboard_categories(self, plan_id) -> List[Any] and dict:
+        dashboard_categories = errors = None
+        if self.auth_token:
+            url = wsutils.get_api_url(
+                constants.ComplinaceCowProtocol, constants.ComplinaceCowHostName)
+            if url:
+                url += "v1/plans/"+plan_id+"/categories/"
+                responseJson = authutils.with_retry_for_auth_failure(wsutils.get)(
+                    self, url, None, self.auth_token)
+
+                if dictutils.is_valid_key(responseJson, "error"):
+                    errors = responseJson
+
+                if dictutils.is_valid_array(responseJson, constants.Items):
+                    dashboard_categories = utils.from_list(
+                        cowreport.ReportCategories.from_dict, responseJson.get(constants.Items))
+
+        return dashboard_categories, errors
+
+    def get_dashboards(self, plan_id, category_id) -> List[Any] and dict:
+        dashboards = errors = None
+        if self.auth_token:
+            url = wsutils.get_api_url(
+                constants.ComplinaceCowProtocol, constants.ComplinaceCowHostName)
+            if url:
+                url += "v1/plans/"+plan_id+"/categories/"+category_id+"/dashboards/"
+                responseJson = authutils.with_retry_for_auth_failure(wsutils.get)(
+                    self, url, None, self.auth_token)
+
+                if dictutils.is_valid_key(responseJson, "error"):
+                    errors = responseJson
+
+                if dictutils.is_valid_array(responseJson, constants.Items):
+                    dashboards = utils.from_list(
+                        cowreport.ReportCategories.from_dict, responseJson.get(constants.Items))
+
+        return dashboards, errors
+
+    def get_reports(self, plan_id, category_id, dashboard_id) -> List[Any] and dict:
+        reports = errors = None
+        if self.auth_token:
+            url = wsutils.get_api_url(
+                constants.ComplinaceCowProtocol, constants.ComplinaceCowHostName)
+            if url:
+                url += "v1/plans/"+plan_id+"/categories/" + \
+                    category_id+"/dashboards/"+dashboard_id+"/reports/"
+                responseJson = authutils.with_retry_for_auth_failure(wsutils.get)(
+                    self, url, None, self.auth_token)
+
+                if dictutils.is_valid_key(responseJson, "error"):
+                    errors = responseJson
+
+                if dictutils.is_valid_array(responseJson, constants.Items):
+                    reports = utils.from_list(
+                        cowreport.ReportCategories.from_dict, responseJson.get(constants.Items))
+
+        return reports, errors
+
+    def get_available_reports(self, report_id=None, report_name=None, dashboard_id=None, category_id=None, tags='report'):
+        reports = errors = None
+
+        if self.auth_token:
+            url = wsutils.get_api_url(
+                constants.ComplinaceCowProtocol, constants.ComplinaceCowHostName)
+            if url:
+                url += "v1/report-cards"
+                query_dict = {'reportId': report_id, 'reportName': report_name,
+                              'dashboardId': dashboard_id, 'categoryId': category_id, 'tags': tags}
+
+                responseJson = authutils.with_retry_for_auth_failure(wsutils.get)(
+                    self, url, query_dict, self.auth_token)
+
+                if dictutils.is_valid_key(responseJson, "error"):
+                    errors = responseJson
+
+                if dictutils.is_valid_array(responseJson, constants.Items):
+                    reports = utils.from_list(
+                        cowreport.ReportCategories.from_dict, responseJson.get(constants.Items))
+
+        return reports, errors
+
+    def get_report_data(self, report_id: str = None, report_name: str = None, data_type: cowreport.SchemaType = cowreport.SchemaType.DATA) -> List[Any] and dict:
+        report_data = errors = None
+
+        if report_id is None and report_name is None:
+            return None, {'error': 'report_id/report_name both cannot be empty'}
+
+        if self.auth_token:
+            url = wsutils.get_api_url(
+                constants.ComplinaceCowProtocol, constants.ComplinaceCowHostName)
+
+            if report_id is None:
+                reports, error = self.get_available_reports(
+                    report_name=report_name)
+                if reports is None or not reports or error or bool(error):
+                    return None, {'error': 'report not available'}
+                else:
+                    report_id = str(reports[0].id)
+            if url:
+                url += "v1/report-cards/"+report_id
+                query_dict = {"type": data_type.value}
+                responseJson = authutils.with_retry_for_auth_failure(wsutils.get)(
+                    self, url, query_dict, self.auth_token)
+
+                if dictutils.is_valid_key(responseJson, "error"):
+                    errors = responseJson
+
+                report_data = responseJson
+
+        return report_data, errors
 
 
 def client_from_dict(s: Any) -> Client:
