@@ -1,5 +1,5 @@
 # ComplianceCow Data Library
-[![N|Solid](https://partner.compliancecow.live/assets/images/cow/cowlogo2.png)](https://nodesource.com/products/nsolid)
+![N|Solid](https://partner.compliancecow.live/assets/images/cow/cowlogo2.png)
 You can use this library for consume data from compliancecow directly. After that you can play around your data.
 
 # Things to remember!
