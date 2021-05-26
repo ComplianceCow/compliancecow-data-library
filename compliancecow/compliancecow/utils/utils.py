@@ -3,8 +3,13 @@ from uuid import UUID
 from typing import Optional, Any, List, TypeVar, Type, Callable, cast
 from datetime import datetime
 import dateutil.parser
+import pandas as pd
+import pyarrow.parquet as pq
+import base64
+import pyarrow as pa
 
 from compliancecow.utils import dictutils
+from compliancecow.models import cowreport
 
 
 T = TypeVar("T")
@@ -133,3 +138,22 @@ def add_plan_details_in_elements(controls=None, plan_id=None, plan_instance_id=N
                         evidence.plan_id = plan_id
                         evidence.plan_instance_id = plan_instance_id
                         evidence.plan_control_id = control.control_id
+
+
+def convert_data_to_df(response: cowreport.ReportData) -> pd.DataFrame and dict:
+    data = pd.DataFrame()
+    errors = None
+    if response.data_type and response.data:
+        if response.data_type == "json":
+            data = pd.DataFrame(response.data)
+        elif response.data_type == "parquet":
+            data = parquet_bytes_to_df(response.data)
+        else:
+            errors = {'error': 'Cannot convert into pandas DataFrame'}
+    return data, errors
+
+
+def parquet_bytes_to_df(parquet_bytes):
+    message_bytes = base64.b64decode(parquet_bytes)
+    reader = pa.BufferReader(message_bytes)
+    return pq.read_table(reader).to_pandas()

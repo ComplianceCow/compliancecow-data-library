@@ -135,39 +135,6 @@ def report_to_dict(x: Report) -> Any:
     return utils.to_class(Report, x)
 
 
-class ReportData:
-    columns: List[str]
-    data: List[dict]
-
-    def __init__(self, columns:  List[str], data: List[dict]) -> None:
-        self.columns = columns
-        self.data = data
-
-    @staticmethod
-    def from_dict(obj: Any) -> 'ReportData':
-        report_data = None
-        if isinstance(obj, dict):
-            columns = data = None
-            if dictutils.is_valid_array(obj, "columns"):
-                columns = utils.from_list(lambda x: str(x), obj.get("columns"))
-            if dictutils.is_valid_array(obj, "data"):
-                data = utils.from_list(lambda x: x, obj.get("data"))
-            report_data = ReportData(columns, data)
-        return report_data
-
-    def to_dict(self) -> dict:
-        result: dict = {}
-        if self.columns:
-            result["columns"] = utils.from_list(utils.from_str, self.columns)
-        if self.data:
-            result["data"] = self.data
-        return result
-
-
-def report_categories_from_dict(s: Any) -> ReportCategories:
-    return ReportCategories.from_dict(s)
-
-
 class Schema:
     mode: str
     name: str
@@ -296,11 +263,82 @@ def report_schema_to_dict(x: ReportSchema) -> Any:
     return utils.to_class(ReportSchema, x)
 
 
-class SchemaType(Enum):
-    DATA = "data"
+class ChartsClass:
+    pass
+
+    def __init__(self, ) -> None:
+        pass
+
+    @staticmethod
+    def from_dict(obj: Any) -> 'ChartsClass':
+        assert isinstance(obj, dict)
+        return ChartsClass()
+
+    def to_dict(self) -> dict:
+        result: dict = {}
+        return result
+
+
+class ReportData:
+    data: Any
+    charts: Any
+    widgets: Any
+    data_type: str
+
+    def __init__(self, data: Any, charts: Any, widgets: Any, data_type: str) -> None:
+        self.data = data
+        self.charts = charts
+        self.widgets = widgets
+        self.data_type = data_type
+
+    @staticmethod
+    def from_dict(obj: Any) -> 'ReportData':
+        assert isinstance(obj, dict)
+        data = charts = widgets = data_type = None
+        if dictutils.is_valid_key(obj, "data"):
+            data = obj.get("data")
+        if dictutils.is_valid_key(obj, "charts"):
+            charts = obj.get("charts")
+        if dictutils.is_valid_key(obj, "widgets"):
+            widgets = obj.get("widgets")
+        # if dictutils.is_valid_array(obj, "columns"):
+        #     columns = utils.from_list(lambda x: str(x), obj.get("columns"))
+        if dictutils.is_valid_key(obj, "dataType"):
+            data_type = utils.from_str(obj.get("dataType"))
+        return ReportData(data, charts, widgets, data_type)
+
+    def to_dict(self) -> dict:
+        result: dict = {}
+        if self.data:
+            result["data"] = self.data
+        if self.charts:
+            result["charts"] = self.charts
+        if self.widgets:
+            result["widgets"] = self.widgets
+        if self.data_type:
+            result["dataType"] = utils.from_str(self.data_type)
+        # if self.columns:
+        #     result["columns"] = utils.from_list(utils.from_str, self.columns)
+        return result
+
+
+def report_data_from_dict(s: Any) -> List[ReportData]:
+    return ReportData.from_dict(s)
+
+
+def report_data_to_dict(x: List[ReportData]) -> Any:
+    return utils.to_class(ReportData, x)
+
+
+class DataType(Enum):
+    JSON = "json"
     BOKEH = "bokeh"
-    SCHEMA = "schema"
     PARQUET = "parquet"
     HTML = "html"
     PDF = "pdf"
     MARKDOWN = "md"
+
+
+class Type(Enum):
+    SCHEMA = "schema"
+    DATA = "data"
