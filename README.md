@@ -1,10 +1,8 @@
 ![N|Solid](https://partner.compliancecow.live/assets/images/cow/cowlogo2.png)
 
-# What is ComplianceCow? High level overview of how it works
+# What is ComplianceCow?
 
-ComplianceCow automates controls testing for Security Compliance for applications running on cloud and kubernetes.If you are first time user, please do a quick read on the ComplianceCow operations below. If you already know or have no patience to read through :), please skip to the ComplianceCow Data Library section.
-
-The [ComplianceCow Integration](https://partner.compliancecow.live/ui/documentation) Document shall set the context and provide more details on the integration aspects.
+ComplianceCow automates controls testing for Security Compliance for applications running on cloud and kubernetes. If you are a first time user, please refer the [ComplianceCow Integration](https://partner.compliancecow.live/ui/documentation) Guide which shall set the context and provide a high level overview of how ComplianceCow works.
 
 # ComplianceCow Data Library
 
