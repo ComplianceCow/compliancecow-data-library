@@ -2,71 +2,9 @@
 
 # What is ComplianceCow? High level overview of how it works
 
-ComplianceCow automates controls testing for Security Compliance for applications running on cloud and kubernetes.If you are first time user, please do a quick read on the ComplianceCow operations below. If you already know or have no patience to read through :), please skip to the ComplianceCow Data Library section
+ComplianceCow automates controls testing for Security Compliance for applications running on cloud and kubernetes.If you are first time user, please do a quick read on the ComplianceCow operations below. If you already know or have no patience to read through :), please skip to the ComplianceCow Data Library section.
 
-## Create a Configuration
-
-The Configuration flow specifies the services in Azure that the user integrates with in order to evaluate the security posture, collect evidences and report. The Configuration flow can vary dependent on the plan selected (more about the "plan" below)
-
-+ User creates a configuration in ComplianceCow with required credentials. For Azure, the user can provide a list of Azure Subscriptions Client ID, Client Secret and the Subscription ID. For Azure Kubernetes Services, the user, in addition to specifying the subscriptions, can specify one or more clusters: private or public. The user will need to provide access to a kubectl instance (VM) that has access to the private or public cluster
-+ ComplianceCow will auto discover services for Azure and Kubernetes. For Azure, ComplianceCow will determine Resource Groups, Virtual Networks and Subnets. Specificallly for AKS, the system will automatically enumerate all the namespaces for the selected cluster. The user can specify the scope by selecting one or more of these elements such as Resource Groups, VNETs, Clusters; as applicable
-
-## Executing a Plan
-
-A Plan in ContiNube is a collection of security controls such as PCI-DSS and CIS Benchmark. It is made up of the hierarchical set of controls. Each control can be automated; i.e, automatically collects evidences from the underlying Azure and/or AKS services or can be manual.
-
-In order to execute a plan, the user
-
-+ Selects a configuration
-+ Enters the control duration or sampling period
-+ Provide run time user inputs, if any
-+ Execute
-
-This adds a ticket to the execution queue and the ComplianceCow system automatically connects with the services in scope and collects data, evidences and testing results
-
-## Operating a Plan
-
-The following describes the hierarchical structure of a plan:
-
-+ Plan
-  + Control (i)
-    + Control Metadata such as Ownership, Due Date, Priority
-    + Subcontrol (i.1)
-      + Subcontrol Medadata such as Ownership, Due Date, Priority. By default takes the same values as that of the parent control
-      + Checklist (0 .. n): User can create one or more To-do lists
-      + Note (0 .. n): User can create one or more notes
-      + Attachment (0 .. n)
-      + Evidence (0 .. n): There can be one or more evidences. These evidences can be automated or manual. When ComplianceCow automatically fetches evidences from Azure or AKS services, they go here. The user can also manually upload evidence files. An evidence file in ComplianceCow has 3 components
-        + Data file: This file contains the data generated in a common data model from the services. For example, there is a file for all entries in Network Security Group for the selected scope in azure subscriptions. This file is typically in parquet format in ComplianceCow
-        + Meta file: This file is an index file that contains all the metadata for the rows in the corresponding data file. For example, the meta file may contain a record that indicates the status of a record. If a row is deleted in the data file, ComplianceCow does not change the data file but instead maintains a marker in the meta file
-        + Column file: This file contains the metadata information for each field in the data file. For example, it holds the data type of columns in the data file
-        All files; Data, Meta and Column are versioned controlled for each commit in ComplianceCow. Any save of these files are saved on to the user workspace and are not moved to the version control system until the commits happen.
-    + Subcontrol (i.2) .....
-  + Control (ii) ...
-
-Each Control, Subcontrol, Checklist, Evidence can be assigned to one or more users. ComplianceCow follows a git checkout type of model for workflows. All assigned users will see the assignment upon logging in, however when the any one user checks-out, s/he owns the element (control, evidence, checklist etc.) and will disappear from the workqueue of other users.
-
-When a plan is executed, it is called a Plan Instance or a Plan Run. Each Plan Run is a unique copy of the Plan for the selected configuration with Evidences, Checklists, Notes etc.
-
-```Plan + Configuration = Plan Instance```
-
-## Reporting
-
-ComplianceCow allows a flexible reporting mechanism. Reporting in ComplianceCow is organized along the following:
-
-+ Category
-  + Dashboard
-    + Report
-      + Data
-        + JSON
-        + CSV
-        + Parquet
-      + Object
-        + Chart
-        + html
-        + pdf
-
-Report is the atomic unit of work that can either return data or a visual object. The data can be specified in multiple formats. A Dashboard is a collection of one or more reports. Each Dashboard is categorized under Category (needless repetition!!) and the categories are nested inside Plans. The Dashboards and the Reports can be for a specific Plan Instance or across multiple Plan Instances or even can span over multiple Plans.
+The [ComplianceCow Integration](https://partner.compliancecow.live/ui/documentation) Document shall set the context and provide more details on the integration aspects.
 
 # ComplianceCow Data Library
 
