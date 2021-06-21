@@ -4,6 +4,6 @@ SecurityContext = "X-Cow-Security-Context"
 VersionSplitter = "_"
 
 ComplinaceCowProtocol = "https"
-ComplinaceCowHostName = "partner.compliancecow.live"
+ComplinaceCowHostName = "dev.compliancecow.live"
 
 Items = "items"
