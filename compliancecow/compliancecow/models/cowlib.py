@@ -23,18 +23,22 @@ class Credential:
     client_id: str
     client_secret: str
     refresh_token: str
+    domain: str
+    protocol: str
 
-    def __init__(self, auth_token: str = None, client_id: str = None, client_secret: str = None, refresh_token: str = None) -> None:
+    def __init__(self, auth_token: str = None, client_id: str = None, client_secret: str = None, refresh_token: str = None, domain: str = None, protocol: str = None) -> None:
         self.auth_token = auth_token
         self.client_id = client_id
         self.client_secret = client_secret
         self.refresh_token = refresh_token
+        self.domain = domain
+        self.protocol = protocol
 
     @staticmethod
     def from_dict(obj: Any) -> 'Credential':
         credential = None
         if isinstance(obj, dict):
-            auth_token = client_id = client_secret = refresh_token = None
+            auth_token = client_id = client_secret = refresh_token = domain = protocol = None
             if dictutils.is_valid_key(obj, "auth_token"):
                 auth_token = utils.from_str(obj.get("auth_token"))
             if dictutils.is_valid_key(obj, "client_id"):
@@ -43,8 +47,12 @@ class Credential:
                 client_secret = utils.from_str(obj.get("client_secret"))
             if dictutils.is_valid_key(obj, "refresh_token"):
                 refresh_token = utils.from_str(obj.get("refresh_token"))
+            if dictutils.is_valid_key(obj, "domain"):
+                domain = utils.from_str(obj.get("domain"))
+            if dictutils.is_valid_key(obj, "protocol"):
+                protocol = utils.from_str(obj.get("protocol"))
             credential = Credential(
-                auth_token, client_id, client_secret, refresh_token)
+                auth_token, client_id, client_secret, refresh_token, domain, protocol)
         return credential
 
     def to_dict(self) -> dict:
@@ -57,6 +65,10 @@ class Credential:
             result["client_secret"] = utils.from_str(self.client_secret)
         if self.refresh_token:
             result["refresh_token"] = utils.from_str(self.refresh_token)
+        if self.domain:
+            result["domain"] = utils.from_str(self.domain)
+        if self.protocol:
+            result["protocol"] = utils.from_str(self.protocol)
         return result
 
 
@@ -79,15 +91,21 @@ class Client:
             with open(file_path) as jsonfile:
                 self.credential_dict = json.load(jsonfile)
         if bool(self.credential_dict):
-            self.credentials = Credential(self.credential_dict)
+            self.credentials = Credential.from_dict(self.credential_dict)
 
         if self.credentials is None:
             self.credentials = Credential()
 
-        self.credentials.protocol = constants.ComplinaceCowProtocol
-        self.credentials.domain = constants.ComplinaceCowHostName
+        if not self.auth_token and self.credentials.auth_token:
+            self.auth_token = self.credentials.auth_token
 
-        if self.auth_token is None and self.credentials.auth_token is None:
+        if not self.credentials.protocol:
+            self.credentials.protocol = constants.ComplinaceCowProtocol
+
+        if not self.credentials.domain:
+            self.credentials.domain = constants.ComplinaceCowHostName
+
+        if not self.auth_token and not self.credentials.auth_token:
             raise Exception("Not a valid credential")
 
     @staticmethod
@@ -132,7 +150,7 @@ class Client:
         plans = errors = None
         if self.auth_token:
             url = wsutils.get_api_url(
-                constants.ComplinaceCowProtocol, constants.ComplinaceCowHostName)
+                self.credentials.protocol, self.credentials.domain)
             if url:
                 url += "v1/plans"
                 querydict = dict()
@@ -160,7 +178,7 @@ class Client:
         plan_instances = errors = None
         if self.auth_token:
             url = wsutils.get_api_url(
-                constants.ComplinaceCowProtocol, constants.ComplinaceCowHostName)
+                self.credentials.protocol, self.credentials.domain)
             if url:
                 url += "v1/plan-instances"
                 plan_ids = [str(plan_id)]
@@ -197,7 +215,7 @@ class Client:
 
         if self.auth_token:
             url = wsutils.get_api_url(
-                constants.ComplinaceCowProtocol, constants.ComplinaceCowHostName)
+                self.credentials.protocol, self.credentials.domain)
             if url:
                 url += "v1/datahandler/fetch-data"
                 reqDict = {
@@ -227,7 +245,7 @@ class Client:
         configurations = errors = None
         if self.auth_token:
             url = wsutils.get_api_url(
-                constants.ComplinaceCowProtocol, constants.ComplinaceCowHostName)
+                self.credentials.protocol, self.credentials.domain)
             if url:
                 url += "v1/configuration"
                 querydict = {}
@@ -252,7 +270,7 @@ class Client:
         dashboard_categories = errors = None
         if self.auth_token:
             url = wsutils.get_api_url(
-                constants.ComplinaceCowProtocol, constants.ComplinaceCowHostName)
+                self.credentials.protocol, self.credentials.domain)
             if url:
                 url += "v1/plans/"+plan_id+"/categories/"
                 responseJson = authutils.with_retry_for_auth_failure(wsutils.get)(
@@ -271,7 +289,7 @@ class Client:
         dashboards = errors = None
         if self.auth_token:
             url = wsutils.get_api_url(
-                constants.ComplinaceCowProtocol, constants.ComplinaceCowHostName)
+                self.credentials.protocol, self.credentials.domain)
             if url:
                 url += "v1/plans/"+plan_id+"/categories/"+category_id+"/dashboards/"
                 responseJson = authutils.with_retry_for_auth_failure(wsutils.get)(
@@ -291,7 +309,7 @@ class Client:
 
         if self.auth_token:
             url = wsutils.get_api_url(
-                constants.ComplinaceCowProtocol, constants.ComplinaceCowHostName)
+                self.credentials.protocol, self.credentials.domain)
             if url:
                 url += "v1/report-cards"
                 query_dict = {'reportId': report_id, 'reportName': report_name,
@@ -318,7 +336,7 @@ class Client:
 
         if self.auth_token:
             url = wsutils.get_api_url(
-                constants.ComplinaceCowProtocol, constants.ComplinaceCowHostName)
+                self.credentials.protocol, self.credentials.domain)
 
             if report_id is None:
                 reports, error = self.get_reports(
