@@ -1,3 +1,4 @@
+import json
 # def get_header(client):
 # token = None
 # if (client and client.credentials and client.credentials.token):
@@ -9,7 +10,10 @@
 # return None
 
 
-def get_header(token):
+def get_header(token, security_ctx=None):
+    header = None
     if token:
-        return {"Authorization": token}
-    return None
+        header = {"Authorization": token}
+    if security_ctx and isinstance(security_ctx, dict) and bool(security_ctx):
+        header = {"X-Cow-Security-Context": json.dumps(security_ctx)}
+    return header

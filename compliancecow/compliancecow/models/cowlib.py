@@ -75,18 +75,20 @@ class Credential:
 class Client:
     auth_token: str
     credential_dict: dict
+    security_ctx: dict
     file_path: str
     client_id: str
     client_secret: str
     credentials: Credential
 
-    def __init__(self, auth_token: str = None, credential_dict: dict = None, file_path: str = None, client_id: str = None, client_secret: str = None, credentials: Credential = None) -> None:
+    def __init__(self, auth_token: str = None, credential_dict: dict = None, file_path: str = None, client_id: str = None, client_secret: str = None, credentials: Credential = None, security_ctx: dict = None) -> None:
         self.auth_token = auth_token
         self.credential_dict = credential_dict
         self.file_path = file_path
         self.client_id = client_id
         self.client_secret = client_secret
         self.credentials = credentials
+        self.security_ctx = security_ctx
         if file_path and not bool(credential_dict):
             with open(file_path) as jsonfile:
                 self.credential_dict = json.load(jsonfile)
@@ -105,14 +107,14 @@ class Client:
         if not self.credentials.domain:
             self.credentials.domain = constants.ComplinaceCowHostName
 
-        if not self.auth_token and not self.credentials.auth_token:
+        if not self.auth_token and not self.credentials.auth_token and not self.security_ctx and not bool(self.security_ctx):
             raise Exception("Not a valid credential")
 
     @staticmethod
     def from_dict(obj: Any) -> 'Client':
         client = None
         if isinstance(obj, dict):
-            auth_token = credential_dict = file_path = client_id = client_secret = credentials = None
+            auth_token = credential_dict = file_path = client_id = client_secret = credentials = security_ctx = None
             if dictutils.is_valid_key(obj, "auth_token"):
                 auth_token = utils.from_str(obj.get("auth_token"))
             if dictutils.is_valid_key(obj, "credential_dict"):
@@ -125,8 +127,10 @@ class Client:
                 client_secret = utils.from_str(obj.get("client_secret"))
             if dictutils.is_valid_key(obj, "credentials"):
                 credentials = Credential.from_dict(obj.get("credentials"))
+            if dictutils.is_valid_key(obj, "security_ctx"):
+                security_ctx = obj.get("security_ctx")
             client = Client(auth_token, credential_dict, file_path,
-                            client_id, client_secret, credentials)
+                            client_id, client_secret, credentials, security_ctx)
         return client
 
     def to_dict(self) -> dict:
@@ -144,11 +148,17 @@ class Client:
         if self.credentials and bool(self.credentials):
             result["credentials"] = utils.to_class(
                 Credential, self.credentials)
+
+        if self.security_ctx and bool(self.security_ctx):
+            result["security_ctx"] = self.security_ctx
         return result
+
+    def is_valid_client(self):
+        return self.auth_token or (self.security_ctx and isinstance(self.security_ctx, dict) and bool(self.security_ctx))
 
     def get_plans(self, ids=None, is_base_fields_only=True) -> List['Plan'] and dict:
         plans = errors = None
-        if self.auth_token:
+        if self.is_valid_client():
             url = wsutils.get_api_url(
                 self.credentials.protocol, self.credentials.domain)
             if url:
@@ -158,7 +168,7 @@ class Client:
                     ids = list(set(validateutils.get_valid_uuids(ids)))
                     querydict['ids'] = ids
                 respJson = authutils.with_retry_for_auth_failure(
-                    wsutils.get)(self, url, querydict, self.auth_token)
+                    wsutils.get)(self, url, querydict, self.auth_token, self.security_ctx)
                 if dictutils.is_valid_key(respJson, 'error') or not dictutils.is_valid_array(respJson, constants.Items):
                     errors = respJson
                 if dictutils.is_valid_array(respJson, constants.Items):
@@ -176,7 +186,7 @@ class Client:
             plan_id = plan.id
 
         plan_instances = errors = None
-        if self.auth_token:
+        if self.is_valid_client():
             url = wsutils.get_api_url(
                 self.credentials.protocol, self.credentials.domain)
             if url:
@@ -196,7 +206,7 @@ class Client:
                     querydict['created_at_end_time'] = to_date
 
                 respJson = authutils.with_retry_for_auth_failure(wsutils.get)(
-                    self, url, querydict, self.auth_token)
+                    self, url, querydict, self.auth_token, self.security_ctx)
                 if dictutils.is_valid_key(respJson, 'error') or not dictutils.is_valid_array(respJson, constants.Items):
                     errors = respJson
                 if dictutils.is_valid_array(respJson, constants.Items):
@@ -213,7 +223,7 @@ class Client:
         if evidence is None:
             errors = {'error': 'evidence object cannot be empty'}
 
-        if self.auth_token:
+        if self.is_valid_client():
             url = wsutils.get_api_url(
                 self.credentials.protocol, self.credentials.domain)
             if url:
@@ -232,7 +242,7 @@ class Client:
                 }
 
                 responseJson = authutils.with_retry_for_auth_failure(wsutils.post)(
-                    self, url, reqDict, self.auth_token)
+                    self, url, reqDict, self.auth_token, self.security_ctx)
                 if dictutils.is_valid_key(responseJson, "error"):
                     errors = responseJson
                 if dictutils.is_valid_key(responseJson, "fileBytes"):
@@ -243,7 +253,7 @@ class Client:
 
     def get_configurations(self, id=None, is_meta_data_to_be_return=False) -> List[Any] and dict:
         configurations = errors = None
-        if self.auth_token:
+        if self.is_valid_client():
             url = wsutils.get_api_url(
                 self.credentials.protocol, self.credentials.domain)
             if url:
@@ -255,7 +265,7 @@ class Client:
                     querydict['isMetaDataToBeReturn'] = is_meta_data_to_be_return
 
                 responseJson = authutils.with_retry_for_auth_failure(wsutils.get)(
-                    self, url, querydict, self.auth_token)
+                    self, url, querydict, self.auth_token, self.security_ctx)
 
                 if dictutils.is_valid_key(responseJson, "error"):
                     errors = responseJson
@@ -268,13 +278,13 @@ class Client:
 
     def get_dashboard_categories(self, plan_id, plan_name=None) -> List[Any] and dict:
         dashboard_categories = errors = None
-        if self.auth_token:
+        if self.is_valid_client():
             url = wsutils.get_api_url(
                 self.credentials.protocol, self.credentials.domain)
             if url:
                 url += "v1/plans/"+plan_id+"/categories/"
                 responseJson = authutils.with_retry_for_auth_failure(wsutils.get)(
-                    self, url, None, self.auth_token)
+                    self, url, None, self.auth_token, self.security_ctx)
 
                 if dictutils.is_valid_key(responseJson, "error"):
                     errors = responseJson
@@ -287,13 +297,13 @@ class Client:
 
     def get_dashboards(self, plan_id, category_id) -> List[Any] and dict:
         dashboards = errors = None
-        if self.auth_token:
+        if self.is_valid_client():
             url = wsutils.get_api_url(
                 self.credentials.protocol, self.credentials.domain)
             if url:
                 url += "v1/plans/"+plan_id+"/categories/"+category_id+"/dashboards/"
                 responseJson = authutils.with_retry_for_auth_failure(wsutils.get)(
-                    self, url, None, self.auth_token)
+                    self, url, None, self.auth_token, self.security_ctx)
 
                 if dictutils.is_valid_key(responseJson, "error"):
                     errors = responseJson
@@ -307,7 +317,7 @@ class Client:
     def get_reports(self, plan_id=None, report_id=None, report_name=None, dashboard_id=None, category_id=None, tags='report'):
         reports = errors = None
 
-        if self.auth_token:
+        if self.is_valid_client():
             url = wsutils.get_api_url(
                 self.credentials.protocol, self.credentials.domain)
             if url:
@@ -317,7 +327,7 @@ class Client:
                               "planId": plan_id}
 
                 responseJson = authutils.with_retry_for_auth_failure(wsutils.get)(
-                    self, url, query_dict, self.auth_token)
+                    self, url, query_dict, self.auth_token, self.security_ctx)
 
                 if dictutils.is_valid_key(responseJson, "error"):
                     errors = responseJson
@@ -334,7 +344,7 @@ class Client:
         if report_id is None and report_name is None:
             return None, {'error': 'report_id/report_name both cannot be empty'}
 
-        if self.auth_token:
+        if self.is_valid_client():
             url = wsutils.get_api_url(
                 self.credentials.protocol, self.credentials.domain)
 
@@ -350,7 +360,7 @@ class Client:
                 query_dict = {"type": format_type.value,
                               "format_type": format_type.value}
                 responseJson = authutils.with_retry_for_auth_failure(wsutils.get)(
-                    self, url, query_dict, self.auth_token)
+                    self, url, query_dict, self.auth_token, self.security_ctx)
 
                 if dictutils.is_valid_key(responseJson, "error"):
                     errors = responseJson
@@ -392,8 +402,9 @@ class Evidence:
     plan_id: UUID
     plan_instance_id: UUID
     plan_control_id: UUID
+    security_ctx: dict
 
-    def __init__(self, id: UUID, name: str, description: str, file_name: str, type: str, plan_instance_control_id: UUID, plan_id: UUID, plan_instance_id: UUID, plan_control_id: UUID) -> None:
+    def __init__(self, id: UUID, name: str, description: str, file_name: str, type: str, plan_instance_control_id: UUID, plan_id: UUID, plan_instance_id: UUID, plan_control_id: UUID, security_ctx: dict = None) -> None:
         self.id = id
         self.name = name
         self.description = description
@@ -403,6 +414,7 @@ class Evidence:
         self.plan_id = plan_id
         self.plan_instance_id = plan_instance_id
         self.plan_control_id = plan_control_id
+        self.security_ctx = security_ctx
 
     def get_data(self, auth_token=None, record_ids=None, owner_type="user", is_user_priority=True, is_src_fetch_call=True) -> pd.DataFrame and dict:
         data = pd.DataFrame
