@@ -4,8 +4,8 @@ import json
 from compliancecow.utils import constants, dictutils, headerutils
 
 
-def post(urlPath, reqData, token):
-    header = headerutils.get_header(token)
+def post(urlPath, reqData, token, security_ctx=None):
+    header = headerutils.get_header(token, security_ctx)
     logging.info("POST_REQUEST", url=urlPath, reqData=reqData, header=header)
     response = requests.post(
         urlPath, json=reqData, headers=header)
@@ -14,8 +14,8 @@ def post(urlPath, reqData, token):
     return responseJSON
 
 
-def put(urlPath, reqData, token):
-    header = headerutils.get_header(token)
+def put(urlPath, reqData, token, security_ctx=None):
+    header = headerutils.get_header(token, security_ctx)
     logging.info("PUT_REQUEST", url=urlPath, reqData=reqData, header=header)
     response = requests.put(urlPath, json=reqData, headers=header)
 
@@ -23,16 +23,16 @@ def put(urlPath, reqData, token):
     return responseJSON
 
 
-def patch(urlPath, reqData, token):
-    header = headerutils.get_header(token)
+def patch(urlPath, reqData, token, security_ctx=None):
+    header = headerutils.get_header(token, security_ctx)
     logging.info("PATCH_REQUEST", url=urlPath, reqData=reqData, header=header)
     response = requests.patch(urlPath, json=reqData, headers=header)
     responseJSON = response.json()
     return responseJSON
 
 
-def delete(urlPath, reqData, token):
-    header = headerutils.get_header(token)
+def delete(urlPath, reqData, token, security_ctx=None):
+    header = headerutils.get_header(token, security_ctx)
     logging.info("DELETE_REQUEST", url=urlPath, reqData=reqData, header=header)
     response = requests.delete(
         urlPath, json=reqData, headers=header)
@@ -43,8 +43,8 @@ def delete(urlPath, reqData, token):
     return responseJSON
 
 
-def get(urlPath, params, token):
-    header = headerutils.get_header(token)
+def get(urlPath, params, token, security_ctx=None):
+    header = headerutils.get_header(token, security_ctx)
     logging.info("GET_REQUEST", url=urlPath, header=header)
     response = requests.get(urlPath, params=params, headers=header)
     # print('raw :', response.raw)
