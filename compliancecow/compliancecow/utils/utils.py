@@ -90,6 +90,8 @@ def fetch_leaf_controls(controls=None, leaf_controls=None, having_evidences=Fals
                 continue
             if having_checklists and not control.check_lists:
                 continue
+            if (automated and not control.cn_plan_id) or (not automated and control.cn_plan_id):
+                continue
 
             leaf_controls.append(control)
 
