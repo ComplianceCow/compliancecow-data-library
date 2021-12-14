@@ -755,8 +755,28 @@ class PlanInstanceControl:
     leaf_control: bool
     tags: dict
     check_lists: List[CheckList]
+    cn_plan_id: UUID
+    config_id: UUID
+    cn_compliance_status: str
+    cn_compliance_pct: int
+    plan_execution_summary: str
+    velocity_to_impact: str
+    likelihood: str
+    vulnerability: str
+    impact: str
+    imputed_weight: int
+    user_selected_weight: int
+    computed_score: int
+    computed_weight: int
+    cn_plan_execution_id: UUID
 
-    def __init__(self, id: UUID, parent_control_id: UUID, name: str, displayable: str, alias: str, priority: str, stage: str, status: str, type: str, reporting_level_control: bool, evidences: List[Evidence], notes: List[Note], control_id: UUID, plan_instance_id: UUID, initiated_by: UUID, started: datetime, ended: datetime, cn_control_execution_start_time: datetime, cn_control_execution_end_time: datetime, cn_synthesizer_start_time: datetime, cn_synthesizer_end_time: datetime, execution_status: str, leaf_control: bool, tags: dict, controls: List['PlanInstanceControl'], check_lists: List[CheckList]) -> None:
+    def __init__(self, id: UUID, parent_control_id: UUID, name: str, displayable: str, alias: str, priority: str, stage: str, status: str,
+                 type: str, reporting_level_control: bool, evidences: List[Evidence], notes: List[Note], control_id: UUID, plan_instance_id: UUID,
+                 initiated_by: UUID, started: datetime, ended: datetime, cn_control_execution_start_time: datetime, cn_control_execution_end_time: datetime,
+                 cn_synthesizer_start_time: datetime, cn_synthesizer_end_time: datetime, execution_status: str, leaf_control: bool, tags: dict,
+                 controls: List['PlanInstanceControl'], check_lists: List[CheckList], cn_plan_id: UUID, config_id: UUID, cn_compliance_status: str,
+                 cn_compliance_pct: int, plan_execution_summary: str, velocity_to_impact: str, likelihood: str, vulnerability: str, impact: str,
+                 imputed_weight: int, user_selected_weight: int,  computed_score: int, computed_weight: int, cn_plan_execution_id: UUID) -> None:
         self.id = id
         self.parent_control_id = parent_control_id
         self.name = name
@@ -783,12 +803,27 @@ class PlanInstanceControl:
         self.controls = controls
         self.tags = tags
         self.check_lists = check_lists
+        self.cn_plan_id = cn_plan_id
+        self.config_id = config_id
+        self.cn_compliance_status = cn_compliance_status
+        self.cn_compliance_pct = cn_compliance_pct
+        self.plan_execution_summary = plan_execution_summary
+        self.velocity_to_impact = velocity_to_impact
+        self.likelihood = likelihood
+        self.vulnerability = vulnerability
+        self.impact = impact
+        self.imputed_weight = imputed_weight
+        self.user_selected_weight = user_selected_weight
+        self.computed_score = computed_score
+        self.computed_weight = computed_weight
+        self.cn_plan_execution_id = cn_plan_execution_id
 
     @staticmethod
     def from_dict(obj: Any) -> 'PlanInstanceControl' or None:
         plan_instance_control = None
         if isinstance(obj, dict):
             id = parent_control_id = name = displayable = alias = priority = stage = status = type = reporting_level_control = evidences = notes = control_id = plan_instance_id = initiated_by = started = ended = cn_control_execution_start_time = cn_control_execution_end_time = cn_synthesizer_start_time = cn_synthesizer_end_time = execution_status = leaf_control = tags = controls = check_lists = None
+            cn_plan_execution_id = computed_weight = computed_score = user_selected_weight = imputed_weight = impact = vulnerability = likelihood = cn_plan_id = config_id = cn_compliance_status = cn_compliance_pct = plan_execution_summary = velocity_to_impact = None
             if dictutils.is_valid_key(obj, "id"):
                 id = UUID(obj.get("id"))
             if dictutils.is_valid_key(obj, "parentControlId"):
@@ -849,8 +884,49 @@ class PlanInstanceControl:
             if dictutils.is_valid_array(obj, "checklists"):
                 check_lists = utils.from_list(
                     CheckList.from_dict, obj.get("checklists"))
+            if dictutils.is_valid_key(obj, "cnPlanId"):
+                cn_plan_id = UUID(obj.get("cnPlanId"))
+            if dictutils.is_valid_key(obj, "configId"):
+                config_id = UUID(obj.get("configId"))
+            if dictutils.is_valid_key(obj, "CNComplianceStatus_"):
+                cn_compliance_status = utils.from_str(
+                    obj.get("CNComplianceStatus_"))
+            if dictutils.is_valid_key(obj, "CNCompliancePCT_"):
+                cn_compliance_pct = utils.from_int(
+                    obj.get("CNCompliancePCT_"))
+            if dictutils.is_valid_key(obj, "planExecutionSummary"):
+                plan_execution_summary = utils.from_str(
+                    obj.get("planExecutionSummary"))
+            if dictutils.is_valid_key(obj, "velocityToImpact"):
+                velocity_to_impact = utils.from_str(
+                    obj.get("velocityToImpact"))
+            if dictutils.is_valid_key(obj, "likelihood"):
+                likelihood = utils.from_str(
+                    obj.get("likelihood"))
+            if dictutils.is_valid_key(obj, "vulnerability"):
+                vulnerability = utils.from_str(
+                    obj.get("vulnerability"))
+            if dictutils.is_valid_key(obj, "impact"):
+                impact = utils.from_str(
+                    obj.get("impact"))
+            if dictutils.is_valid_key(obj, "imputedWeight"):
+                imputed_weight = utils.from_int(
+                    obj.get("imputedWeight"))
+            if dictutils.is_valid_key(obj, "userSelectedWeight"):
+                user_selected_weight = utils.from_int(
+                    obj.get("userSelectedWeight"))
+            if dictutils.is_valid_key(obj, "computedScore"):
+                computed_score = utils.from_int(
+                    obj.get("computedScore"))
+            if dictutils.is_valid_key(obj, "computedWeight"):
+                computed_weight = utils.from_int(
+                    obj.get("computedWeight"))
+            if dictutils.is_valid_key(obj, "cnPlanExecutionId"):
+                cn_plan_execution_id = UUID(obj.get("cnPlanExecutionId"))
+
             plan_instance_control = PlanInstanceControl(id, parent_control_id, name, displayable, alias, priority, stage, status, type, reporting_level_control, evidences, notes, control_id, plan_instance_id,
-                                                        initiated_by, started, ended, cn_control_execution_start_time, cn_control_execution_end_time, cn_synthesizer_start_time, cn_synthesizer_end_time, execution_status, leaf_control, tags, controls, check_lists)
+                                                        initiated_by, started, ended, cn_control_execution_start_time, cn_control_execution_end_time, cn_synthesizer_start_time, cn_synthesizer_end_time, execution_status, leaf_control, tags, controls, check_lists,
+                                                        cn_plan_id, config_id, cn_compliance_status, cn_compliance_pct, plan_execution_summary, velocity_to_impact, likelihood, vulnerability, impact, imputed_weight, user_selected_weight,  computed_score, computed_weight, cn_plan_execution_id)
         return plan_instance_control
 
     def to_dict(self) -> dict:
@@ -912,6 +988,39 @@ class PlanInstanceControl:
         if self.check_lists:
             result["checklists"] = utils.from_list(lambda x: utils.to_class(
                 CheckList, x), self.check_lists)
+        if self.cn_plan_id:
+            result["cnPlanId"] = str(self.cn_plan_id)
+        if self.config_id:
+            result["configId"] = str(self.config_id)
+        if self.cn_compliance_status:
+            result["CNComplianceStatus_"] = utils.from_str(
+                self.cn_compliance_status)
+        if self.cn_compliance_pct:
+            result["CNCompliancePCT_"] = self.cn_compliance_status
+        if self.velocity_to_impact:
+            result["velocityToImpact"] = utils.from_str(
+                self.velocity_to_impact)
+        if self.likelihood:
+            result["likelihood"] = utils.from_str(
+                self.likelihood)
+        if self.vulnerability:
+            result["vulnerability"] = utils.from_str(
+                self.vulnerability)
+        if self.impact:
+            result["impact"] = utils.from_str(self.impact)
+        if self.imputed_weight:
+            result["imputedWeight"] = self.cn_compliance_status
+        if self.imputed_weight:
+            result["imputedWeight"] = self.cn_compliance_status
+        if self.user_selected_weight:
+            result["userSelectedWeight"] = self.user_selected_weight
+        if self.computed_score:
+            result["computedScore"] = self.computed_score
+        if self.computed_weight:
+            result["computedWeight"] = self.computed_weight
+        if self.cn_plan_execution_id:
+            result["cnPlanExecutionId"] = str(self.cn_plan_execution_id)
+
         return result
 
 
