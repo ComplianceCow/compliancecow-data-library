@@ -107,6 +107,9 @@ class Client:
         if not self.credentials.domain:
             self.credentials.domain = constants.ComplinaceCowHostName
 
+        if self.auth_token is None and (self.client_id and self.client_secret) or (self.credentials.client_id and self.credentials.client_secret):
+            authutils.authorize_client(self)
+
         if not self.auth_token and not self.credentials.auth_token and not self.security_ctx and not bool(self.security_ctx):
             raise Exception("Not a valid credential")
 
