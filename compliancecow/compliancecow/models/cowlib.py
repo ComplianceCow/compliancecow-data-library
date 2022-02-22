@@ -159,7 +159,7 @@ class Client:
     def is_valid_client(self):
         return self.auth_token or (self.security_ctx and isinstance(self.security_ctx, dict) and bool(self.security_ctx))
 
-    def get_plans(self, ids=None, is_base_fields_only=True) -> List['Plan'] and dict:
+    def get_plans(self, ids=None, is_base_fields_only=True, name=None) -> List['Plan'] and dict:
         plans = errors = None
         if self.is_valid_client():
             url = wsutils.get_api_url(
@@ -170,6 +170,8 @@ class Client:
                 if ids:
                     ids = list(set(validateutils.get_valid_uuids(ids)))
                     querydict['ids'] = ids
+                if name:
+                    querydict['name'] = name
                 respJson = authutils.with_retry_for_auth_failure(
                     wsutils.get)(self, url, querydict, self.auth_token, self.security_ctx)
                 if dictutils.is_valid_key(respJson, 'error') or not dictutils.is_valid_array(respJson, constants.Items):
@@ -179,13 +181,13 @@ class Client:
                         Plan.from_dict, respJson.get(constants.Items))
         return plans, errors
 
-    def get_plan_instances(self, plan=None, plan_id=None, ids=None, from_date=None, to_date=None, is_base_fields_only=True) -> List['PlanInstance'] and dict:
+    def get_plan_instances(self, plan=None, plan_id=None, ids=None, from_date=None, to_date=None, is_base_fields_only=True, name=None) -> List['PlanInstance'] and dict:
         # error handle for token expiry with try catch or with exec.
 
-        if plan is None and plan_id is None:
-            return None, {'error': 'Plan and PlanID both cannot be empty'}
+        if plan is None and plan_id is None and name is None:
+            return None, {'error': 'Plan, name and PlanID all cannot be empty'}
 
-        if plan_id is None:
+        if plan_id is None and plan is not None:
             plan_id = plan.id
 
         plan_instances = errors = None
@@ -207,6 +209,8 @@ class Client:
                     querydict['created_at_start_time'] = from_date
                 if to_date:
                     querydict['created_at_end_time'] = to_date
+                if name:
+                    querydict['starts_with'] = name
 
                 respJson = authutils.with_retry_for_auth_failure(wsutils.get)(
                     self, url, querydict, self.auth_token, self.security_ctx)
