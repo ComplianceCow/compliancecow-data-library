@@ -78,20 +78,27 @@ class Report:
     category_id: UUID
     plan_ids: List[UUID]
     tags: List[str]
+    type: str
+    plan_instance_id: UUID
+    is_mock: bool
 
-    def __init__(self, id: UUID, name: str, category_name: str, category_id: UUID, plan_ids: List[UUID], tags: List[str]) -> None:
+    def __init__(self, id: UUID, name: str, category_name: str, category_id: UUID, plan_ids: List[UUID], tags: List[str], type: str, plan_instance_id: UUID, is_mock: bool) -> None:
         self.id = id
         self.name = name
         self.category_name = category_name
         self.category_id = category_id
         self.plan_ids = plan_ids
         self.tags = tags
+        self.type = type
+        self.plan_instance_id = plan_instance_id
+        self.is_mock = is_mock
 
     @staticmethod
     def from_dict(obj: Any) -> 'Report':
         report = None
         if isinstance(obj, dict):
-            id = name = category_name = category_id = plan_ids = tags = None
+            id = name = category_name = category_id = plan_ids = tags = type = plan_instance_id = None
+            is_mock = False
             if dictutils.is_valid_key(obj, "id"):
                 id = UUID(obj.get("id"))
             if dictutils.is_valid_key(obj, "name"):
@@ -105,8 +112,14 @@ class Report:
                     lambda x: UUID(x), obj.get("planIds"))
             if dictutils.is_valid_array(obj, "tags"):
                 tags = utils.from_list(utils.from_str, obj.get("tags"))
+            if dictutils.is_valid_key(obj, "plan_instance_id"):
+                plan_instance_id = UUID(obj.get("plan_instance_id"))
+            if dictutils.is_valid_key(obj, "type"):
+                type = utils.from_str(obj.get("type"))
+            if dictutils.is_valid_key(obj, "isMock"):
+                is_mock = utils.from_str(obj.get("isMock"))
             report = Report(id, name, category_name,
-                            category_id, plan_ids, tags)
+                            category_id, plan_ids, tags, type, plan_instance_id, is_mock)
         return report
 
     def to_dict(self) -> dict:
@@ -124,6 +137,12 @@ class Report:
                 lambda x: str(x), self.plan_ids)
         if self.tags:
             result["tags"] = utils.from_list(utils.from_str, self.tags)
+        if self.type:
+            result["type"] = utils.from_str(self.type)
+        if self.plan_instance_id:
+            result["plan_instance_id"] = str(self.plan_instance_id)
+        if self.is_mock is not None:
+            result["isMock"] = self.is_mock
         return result
 
 
@@ -295,6 +314,7 @@ class ReportData:
     def from_dict(obj: Any) -> 'ReportData':
         assert isinstance(obj, dict)
         data = charts = widgets = data_type = None
+        # print("obj :::", obj)
         if dictutils.is_valid_key(obj, "data"):
             data = obj.get("data")
         if dictutils.is_valid_key(obj, "charts"):
