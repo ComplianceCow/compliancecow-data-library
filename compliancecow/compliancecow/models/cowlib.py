@@ -159,7 +159,7 @@ class Client:
     def is_valid_client(self):
         return self.auth_token or (self.security_ctx and isinstance(self.security_ctx, dict) and bool(self.security_ctx))
 
-    def get_plans(self, ids=None, is_base_fields_only=True) -> List['Plan'] and dict:
+    def get_plans(self, ids=None, is_base_fields_only=True, name=None) -> List['Plan'] and dict:
         plans = errors = None
         if self.is_valid_client():
             url = wsutils.get_api_url(
@@ -170,6 +170,8 @@ class Client:
                 if ids:
                     ids = list(set(validateutils.get_valid_uuids(ids)))
                     querydict['ids'] = ids
+                if name:
+                    querydict['name'] = name
                 respJson = authutils.with_retry_for_auth_failure(
                     wsutils.get)(self, url, querydict, self.auth_token, self.security_ctx)
                 if dictutils.is_valid_key(respJson, 'error') or not dictutils.is_valid_array(respJson, constants.Items):
@@ -179,13 +181,13 @@ class Client:
                         Plan.from_dict, respJson.get(constants.Items))
         return plans, errors
 
-    def get_plan_instances(self, plan=None, plan_id=None, ids=None, from_date=None, to_date=None, is_base_fields_only=True) -> List['PlanInstance'] and dict:
+    def get_plan_instances(self, plan=None, plan_id=None, ids=None, from_date=None, to_date=None, is_base_fields_only=True, name=None) -> List['PlanInstance'] and dict:
         # error handle for token expiry with try catch or with exec.
 
-        if plan is None and plan_id is None:
-            return None, {'error': 'Plan and PlanID both cannot be empty'}
+        if plan is None and plan_id is None and name is None:
+            return None, {'error': 'Plan, name and PlanID all cannot be empty'}
 
-        if plan_id is None:
+        if plan_id is None and plan is not None:
             plan_id = plan.id
 
         plan_instances = errors = None
@@ -207,6 +209,8 @@ class Client:
                     querydict['created_at_start_time'] = from_date
                 if to_date:
                     querydict['created_at_end_time'] = to_date
+                if name:
+                    querydict['starts_with'] = name
 
                 respJson = authutils.with_retry_for_auth_failure(wsutils.get)(
                     self, url, querydict, self.auth_token, self.security_ctx)
@@ -341,7 +345,7 @@ class Client:
 
         return reports, errors
 
-    def __get_report_details(self, report_id: str = None, report_name: str = None, type: cowreport.Type = cowreport.Type.DATA, format_type: cowreport.DataType = cowreport.DataType.JSON) -> List[Any] and dict:
+    def __get_report_details(self, report_id: str = None, report_name: str = None, type: cowreport.Type = cowreport.Type.DATA, format_type: cowreport.DataType = cowreport.DataType.JSON, plan_instance_id: str = None, is_mock: bool = True) -> List[Any] and dict:
         report_data = errors = None
 
         if report_id is None and report_name is None:
@@ -362,6 +366,14 @@ class Client:
                 url += "v1/report-cards/"+report_id
                 query_dict = {"type": format_type.value,
                               "format_type": format_type.value}
+                if plan_instance_id:
+                    query_dict['plan_instance_id'] = plan_instance_id
+
+                if is_mock:
+                    query_dict['isMock'] = 'true'
+                else:
+                    query_dict['isMock'] = 'false'
+
                 responseJson = authutils.with_retry_for_auth_failure(wsutils.get)(
                     self, url, query_dict, self.auth_token, self.security_ctx)
 
@@ -372,16 +384,16 @@ class Client:
 
         return report_data, errors
 
-    def get_report_schema(self, report_id: str = None, report_name: str = None) -> cowreport.ReportSchema and dict:
+    def get_report_schema(self, report_id: str = None, report_name: str = None, plan_instance_id: str = None, is_mock: bool = True) -> cowreport.ReportSchema and dict:
         response, errors = self.__get_report_details(
             report_id=report_id, report_name=report_name, type=cowreport.Type.SCHEMA)
         if errors is None and not bool(errors):
             return cowreport.report_schema_from_dict(response), errors
         return None, errors
 
-    def get_report_data(self, report_id: str = None, report_name: str = None, format_type: cowreport.DataType = cowreport.DataType.JSON) -> cowreport.ReportData and dict:
+    def get_report_data(self, report_id: str = None, report_name: str = None, format_type: cowreport.DataType = cowreport.DataType.JSON, plan_instance_id: str = None, is_mock: bool = True) -> cowreport.ReportData and dict:
         response, errors = self.__get_report_details(
-            report_id=report_id, report_name=report_name, type=cowreport.Type.DATA, format_type=format_type)
+            report_id=report_id, report_name=report_name, type=cowreport.Type.DATA, format_type=format_type, plan_instance_id=plan_instance_id, is_mock=is_mock)
         if errors is None and not bool(errors):
             return cowreport.report_data_from_dict(response), errors
         return None, errors
@@ -406,8 +418,11 @@ class Evidence:
     plan_instance_id: UUID
     plan_control_id: UUID
     security_ctx: dict
+    compliance_pct__: int
+    compliance_weight__: int
+    compliance_status__: str
 
-    def __init__(self, id: UUID, name: str, description: str, file_name: str, type: str, plan_instance_control_id: UUID, plan_id: UUID, plan_instance_id: UUID, plan_control_id: UUID, security_ctx: dict = None) -> None:
+    def __init__(self, id: UUID, name: str, description: str, file_name: str, type: str, plan_instance_control_id: UUID, plan_id: UUID, plan_instance_id: UUID, plan_control_id: UUID, compliance_pct__: int, compliance_weight__: int, compliance_status__: str, security_ctx: dict = None) -> None:
         self.id = id
         self.name = name
         self.description = description
@@ -418,6 +433,9 @@ class Evidence:
         self.plan_instance_id = plan_instance_id
         self.plan_control_id = plan_control_id
         self.security_ctx = security_ctx
+        self.compliance_pct__ = compliance_pct__
+        self.compliance_weight__ = compliance_weight__
+        self.compliance_status__ = compliance_status__
 
     def get_data(self, auth_token=None, record_ids=None, owner_type="user", is_user_priority=True, is_src_fetch_call=True) -> pd.DataFrame and dict:
         data = pd.DataFrame
@@ -454,7 +472,7 @@ class Evidence:
     def from_dict(obj: Any) -> 'Evidence' or None:
         evidence = None
         if isinstance(obj, dict):
-            id = name = description = file_name = type = plan_instance_control_id = plan_id = plan_instance_id = plan_control_id = None
+            id = name = description = file_name = type = plan_instance_control_id = plan_id = plan_instance_id = plan_control_id = compliance_pct__ = compliance_weight__ = compliance_status__ = None
             if dictutils.is_valid_key(obj, "id"):
                 id = UUID(obj.get("id"))
             if dictutils.is_valid_key(obj, "name"):
@@ -474,8 +492,17 @@ class Evidence:
                 plan_instance_id = UUID(obj.get("planInstanceId"))
             if dictutils.is_valid_key(obj, "planControlId"):
                 plan_control_id = UUID(obj.get("planInstanceId"))
+            if dictutils.is_valid_key(obj, "compliancePCT__"):
+                compliance_pct__ = utils.from_int(
+                    obj.get("compliancePCT__"))
+            if dictutils.is_valid_key(obj, "complianceWeight__"):
+                compliance_weight__ = utils.from_int(
+                    obj.get("complianceWeight__"))
+            if dictutils.is_valid_key(obj, "complianceStatus__"):
+                compliance_status__ = utils.from_str(
+                    obj.get("complianceStatus__"))
             evidence = Evidence(id, name, description,
-                                file_name, type, plan_instance_control_id, plan_id, plan_instance_id, plan_control_id)
+                                file_name, type, plan_instance_control_id, plan_id, plan_instance_id, plan_control_id, compliance_pct__, compliance_weight__, compliance_status__)
         return evidence
 
     def to_dict(self) -> dict:
@@ -502,6 +529,13 @@ class Evidence:
         if self.plan_control_id:
             result["planControlId"] = str(
                 self.plan_control_id)
+        if self.compliance_pct__:
+            result["compliancePCT__"] = self.compliance_pct__
+        if self.compliance_weight__:
+            result["complianceWeight__"] = self.compliance_pct__
+        if self.compliance_status__:
+            result["complianceStatus__"] = utils.from_str(
+                self.compliance_pct__)
         return result
 
 
@@ -772,6 +806,13 @@ class PlanInstanceControl:
     computed_score: int
     computed_weight: int
     cn_plan_execution_id: UUID
+    compliance_pct__: int
+    compliance_weight__: int
+    compliance_status__: str
+    user_selected_compliance_pct__: int
+    user_selected_compliance_weight__: int
+    user_selected_compliance_status__: str
+    total_weight__: int
 
     def __init__(self, id: UUID, parent_control_id: UUID, name: str, displayable: str, alias: str, priority: str, stage: str, status: str,
                  type: str, reporting_level_control: bool, evidences: List[Evidence], notes: List[Note], control_id: UUID, plan_instance_id: UUID,
@@ -779,7 +820,9 @@ class PlanInstanceControl:
                  cn_synthesizer_start_time: datetime, cn_synthesizer_end_time: datetime, execution_status: str, leaf_control: bool, tags: dict,
                  controls: List['PlanInstanceControl'], check_lists: List[CheckList], cn_plan_id: UUID, config_id: UUID, cn_compliance_status: str,
                  cn_compliance_pct: int, plan_execution_summary: str, velocity_to_impact: str, likelihood: str, vulnerability: str, impact: str,
-                 imputed_weight: int, user_selected_weight: int,  computed_score: int, computed_weight: int, cn_plan_execution_id: UUID) -> None:
+                 imputed_weight: int, user_selected_weight: int,  computed_score: int, computed_weight: int, cn_plan_execution_id: UUID,
+                 compliance_pct__: int, compliance_weight__: int, compliance_status__: str, user_selected_compliance_pct__: int,
+                 user_selected_compliance_weight__: int, user_selected_compliance_status__: str, total_weight__: int) -> None:
         self.id = id
         self.parent_control_id = parent_control_id
         self.name = name
@@ -820,6 +863,13 @@ class PlanInstanceControl:
         self.computed_score = computed_score
         self.computed_weight = computed_weight
         self.cn_plan_execution_id = cn_plan_execution_id
+        self.compliance_pct__ = compliance_pct__
+        self.compliance_weight__ = compliance_weight__
+        self.compliance_status__ = compliance_status__
+        self.user_selected_compliance_pct__ = user_selected_compliance_pct__
+        self.user_selected_compliance_weight__ = user_selected_compliance_weight__
+        self.user_selected_compliance_status__ = user_selected_compliance_status__
+        self.total_weight__ = total_weight__
 
     @staticmethod
     def from_dict(obj: Any) -> 'PlanInstanceControl' or None:
@@ -827,6 +877,7 @@ class PlanInstanceControl:
         if isinstance(obj, dict):
             id = parent_control_id = name = displayable = alias = priority = stage = status = type = reporting_level_control = evidences = notes = control_id = plan_instance_id = initiated_by = started = ended = cn_control_execution_start_time = cn_control_execution_end_time = cn_synthesizer_start_time = cn_synthesizer_end_time = execution_status = leaf_control = tags = controls = check_lists = None
             cn_plan_execution_id = computed_weight = computed_score = user_selected_weight = imputed_weight = impact = vulnerability = likelihood = cn_plan_id = config_id = cn_compliance_status = cn_compliance_pct = plan_execution_summary = velocity_to_impact = None
+            compliance_pct__ = compliance_weight__ = compliance_status__ = user_selected_compliance_pct__ = user_selected_compliance_weight__ = user_selected_compliance_status__ = total_weight__ = None
             if dictutils.is_valid_key(obj, "id"):
                 id = UUID(obj.get("id"))
             if dictutils.is_valid_key(obj, "parentControlId"):
@@ -926,10 +977,32 @@ class PlanInstanceControl:
                     obj.get("computedWeight"))
             if dictutils.is_valid_key(obj, "cnPlanExecutionId"):
                 cn_plan_execution_id = UUID(obj.get("cnPlanExecutionId"))
+            if dictutils.is_valid_key(obj, "compliancePCT__"):
+                compliance_pct__ = utils.from_int(
+                    obj.get("compliancePCT__"))
+            if dictutils.is_valid_key(obj, "complianceWeight__"):
+                compliance_weight__ = utils.from_int(
+                    obj.get("complianceWeight__"))
+            if dictutils.is_valid_key(obj, "complianceStatus__"):
+                compliance_status__ = utils.from_str(
+                    obj.get("complianceStatus__"))
+            if dictutils.is_valid_key(obj, "userSelectedCompliancePCT__"):
+                user_selected_compliance_pct__ = utils.from_int(
+                    obj.get("userSelectedCompliancePCT__"))
+            if dictutils.is_valid_key(obj, "userSelectedComplianceWeight__"):
+                user_selected_compliance_weight__ = utils.from_int(
+                    obj.get("userSelectedComplianceWeight__"))
+            if dictutils.is_valid_key(obj, "userSelectedComplianceStatus__"):
+                user_selected_compliance_status__ = utils.from_str(
+                    obj.get("userSelectedComplianceStatus__"))
+            if dictutils.is_valid_key(obj, "totalWeight__"):
+                total_weight__ = utils.from_int(
+                    obj.get("totalWeight__"))
 
             plan_instance_control = PlanInstanceControl(id, parent_control_id, name, displayable, alias, priority, stage, status, type, reporting_level_control, evidences, notes, control_id, plan_instance_id,
                                                         initiated_by, started, ended, cn_control_execution_start_time, cn_control_execution_end_time, cn_synthesizer_start_time, cn_synthesizer_end_time, execution_status, leaf_control, tags, controls, check_lists,
-                                                        cn_plan_id, config_id, cn_compliance_status, cn_compliance_pct, plan_execution_summary, velocity_to_impact, likelihood, vulnerability, impact, imputed_weight, user_selected_weight,  computed_score, computed_weight, cn_plan_execution_id)
+                                                        cn_plan_id, config_id, cn_compliance_status, cn_compliance_pct, plan_execution_summary, velocity_to_impact, likelihood, vulnerability, impact, imputed_weight, user_selected_weight,  computed_score, computed_weight, cn_plan_execution_id,
+                                                        compliance_pct__, compliance_weight__, compliance_status__, user_selected_compliance_pct__, user_selected_compliance_weight__, user_selected_compliance_status__, total_weight__)
         return plan_instance_control
 
     def to_dict(self) -> dict:
@@ -999,7 +1072,7 @@ class PlanInstanceControl:
             result["CNComplianceStatus_"] = utils.from_str(
                 self.cn_compliance_status)
         if self.cn_compliance_pct:
-            result["CNCompliancePCT_"] = self.cn_compliance_status
+            result["CNCompliancePCT_"] = self.cn_compliance_pct
         if self.velocity_to_impact:
             result["velocityToImpact"] = utils.from_str(
                 self.velocity_to_impact)
@@ -1023,6 +1096,22 @@ class PlanInstanceControl:
             result["computedWeight"] = self.computed_weight
         if self.cn_plan_execution_id:
             result["cnPlanExecutionId"] = str(self.cn_plan_execution_id)
+        if self.compliance_pct__:
+            result["compliancePCT__"] = self.compliance_pct__
+        if self.compliance_weight__:
+            result["complianceWeight__"] = self.compliance_pct__
+        if self.compliance_status__:
+            result["complianceStatus__"] = utils.from_str(
+                self.compliance_pct__)
+        if self.user_selected_compliance_pct__:
+            result["userSelectedCompliancePCT__"] = self.compliance_pct__
+        if self.user_selected_compliance_weight__:
+            result["userSelectedComplianceWeight__"] = self.compliance_pct__
+        if self.user_selected_compliance_status__:
+            result["userSelectedComplianceStatus__"] = utils.from_str(
+                self.compliance_pct__)
+        if self.total_weight__:
+            result["totalWeight__"] = self.total_weight__
 
         return result
 
