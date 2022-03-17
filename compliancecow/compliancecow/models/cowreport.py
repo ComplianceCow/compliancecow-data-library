@@ -1,3 +1,4 @@
+import pandas as pd
 from uuid import UUID
 from typing import Any, TypeVar, Type, cast, List, Union
 from enum import Enum
@@ -348,6 +349,86 @@ def report_data_from_dict(s: Any) -> List[ReportData]:
 
 def report_data_to_dict(x: List[ReportData]) -> Any:
     return utils.to_class(ReportData, x)
+
+
+class CowReportsBaseModel(object):
+    def __init__(self, req_obj, *args, **kwargs):
+        self.req_obj = req_obj
+        self.args = args
+        self.kwargs = kwargs
+        self.header = None
+        self.report_data = pd.DataFrame()
+        self.is_mock = True
+        self.markdown = None
+
+    def GenerateReportData(self):
+        '''
+        This method will produce the base ouput as DataFrame, so other ouput types can consume this data and
+        present back to the client in the required format
+        '''
+        return pd.DataFrame()
+
+    def GenerateReportDataAsDataTable(self, df=pd.DataFrame()):
+        '''
+        This method will produce report data as DataTable
+        '''
+        return None
+
+    def GenerateReportDataAsParquet(self, df=pd.DataFrame()):
+        '''
+        This method will produce report data as Parquet bytes
+        '''
+        df = self.__get_data__(df)
+        if not df.empty:
+            return None
+
+        return utils.get_df_as_str_encoded(df)
+
+    def GenerateReportDataAsJSON(self, df=pd.DataFrame()):
+        '''
+        This method will produce report data as JSON
+        '''
+        df = self.__get_data__(df)
+        if not df.empty:
+            return None
+
+        return df.to_dict(orient='records')
+
+    def GenerateReportDataAsHTMLContent(self):
+        '''
+        This method will produce report data as HTML Content
+        '''
+        return None
+
+    def GenerateReportDataAsBokehHTMLObject(self):
+        '''
+        This method will produce report data as Bokeh obj
+        '''
+        return None
+
+    def GenerateReportDataAsMDFile(self):
+        '''
+        This method will produce report data as MarkDown file content
+        '''
+        return None
+
+    def GenerateReportDataAsPDFFile(self):
+        '''
+        This method will produce report data as PDF file content
+        '''
+        return None
+
+    def GetSchema(self):
+        schema = []
+        return {"schema": schema}
+
+    def __get_data__(self, df=pd.DataFrame()):
+        if df.empty and self.report_data and isinstance(self.report_data, pd.DataFrame) and not self.report_data.empty:
+            df = self.report_data
+        return df
+
+    def __init_data(self, *args, **kwargs):
+        return None
 
 
 class DataType(Enum):
