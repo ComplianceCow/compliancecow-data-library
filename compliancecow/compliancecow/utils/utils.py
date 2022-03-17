@@ -7,8 +7,6 @@ import pandas as pd
 import pyarrow.parquet as pq
 import base64
 import pyarrow as pa
-
-from compliancecow.utils import dictutils
 from compliancecow.models import cowreport
 
 
