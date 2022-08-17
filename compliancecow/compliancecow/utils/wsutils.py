@@ -77,3 +77,13 @@ def get_url(protocol, host):
 def get_api_url(protocol, host):
     url = get_url(protocol, host)+"api/"
     return url
+
+
+def get_rule_engine_url(protocol, host):
+    url = "{protocol}://{host}/".format(protocol=protocol, host=host)
+    return url
+
+
+def get_rule_engine_api_url(protocol, host):
+    url = get_url(protocol, host)+"api/"
+    return url

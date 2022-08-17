@@ -9,9 +9,10 @@ import pandas as pd
 import pyarrow.parquet as pq
 import base64
 import pyarrow as pa
+import io
 
-from compliancecow.utils import constants, dictutils, authutils, utils, wsutils, validateutils
-from compliancecow.models import configuration, cowreport
+from compliancecow.utils import constants, dictutils, authutils, utils, wsutils, validateutils, ruleengineutils
+from compliancecow.models import configuration, cowreport, ruleengine
 # from compliancecow.data import metadata
 
 
@@ -25,20 +26,26 @@ class Credential:
     refresh_token: str
     domain: str
     protocol: str
+    rule_engine_domain: str
+    rule_engine_protocol: str
+    env: str
 
-    def __init__(self, auth_token: str = None, client_id: str = None, client_secret: str = None, refresh_token: str = None, domain: str = None, protocol: str = None) -> None:
+    def __init__(self, auth_token: str = None, client_id: str = None, client_secret: str = None, refresh_token: str = None, domain: str = None, protocol: str = None, rule_engine_domain: str = None, rule_engine_protocol: str = None, env: str = None) -> None:
         self.auth_token = auth_token
         self.client_id = client_id
         self.client_secret = client_secret
         self.refresh_token = refresh_token
         self.domain = domain
         self.protocol = protocol
+        self.rule_engine_domain = rule_engine_domain
+        self.rule_engine_protocol = rule_engine_protocol
+        self.env = env
 
     @staticmethod
     def from_dict(obj: Any) -> 'Credential':
         credential = None
         if isinstance(obj, dict):
-            auth_token = client_id = client_secret = refresh_token = domain = protocol = None
+            auth_token = client_id = client_secret = refresh_token = domain = protocol = rule_engine_domain = rule_engine_protocol = env = None
             if dictutils.is_valid_key(obj, "auth_token"):
                 auth_token = utils.from_str(obj.get("auth_token"))
             if dictutils.is_valid_key(obj, "client_id"):
@@ -51,8 +58,17 @@ class Credential:
                 domain = utils.from_str(obj.get("domain"))
             if dictutils.is_valid_key(obj, "protocol"):
                 protocol = utils.from_str(obj.get("protocol"))
+            if dictutils.is_valid_key(obj, "rule_engine_domain"):
+                rule_engine_domain = utils.from_str(
+                    obj.get("rule_engine_domain"))
+            if dictutils.is_valid_key(obj, "rule_engine_protocol"):
+                rule_engine_protocol = utils.from_str(
+                    obj.get("rule_engine_protocol"))
+            if dictutils.is_valid_key(obj, "env"):
+                env = utils.from_str(
+                    obj.get("env"))
             credential = Credential(
-                auth_token, client_id, client_secret, refresh_token, domain, protocol)
+                auth_token, client_id, client_secret, refresh_token, domain, protocol, rule_engine_domain, rule_engine_protocol, env)
         return credential
 
     def to_dict(self) -> dict:
@@ -69,6 +85,14 @@ class Credential:
             result["domain"] = utils.from_str(self.domain)
         if self.protocol:
             result["protocol"] = utils.from_str(self.protocol)
+        if self.rule_engine_domain:
+            result["rule_engine_domain"] = utils.from_str(
+                self.rule_engine_domain)
+        if self.rule_engine_protocol:
+            result["rule_engine_protocol"] = utils.from_str(
+                self.rule_engine_protocol)
+        if self.env:
+            result["env"] = utils.from_str(self.env)
         return result
 
 
@@ -106,6 +130,15 @@ class Client:
 
         if not self.credentials.domain:
             self.credentials.domain = constants.ComplinaceCowHostName
+
+        if not self.credentials.rule_engine_protocol:
+            self.credentials.rule_engine_protocol = constants.RuleEngineProtocol
+
+        if not self.credentials.rule_engine_domain:
+            self.credentials.rule_engine_domain = constants.RuleEngineHostName
+
+        if not self.credentials.env:
+            self.credentials.env = constants.CLIEnvironment
 
         if self.auth_token is None and (self.client_id and self.client_secret) or (self.credentials.client_id and self.credentials.client_secret):
             authutils.authorize_client(self)
@@ -397,6 +430,103 @@ class Client:
         if errors is None and not bool(errors):
             return cowreport.report_data_from_dict(response), errors
         return None, errors
+
+    def get_rule_engine_plan_instance(self, plan_instance_id: str, query_dict: dict = None) -> ruleengine.RuleEnginePlanRun and dict:
+        plan_instance = errors = None
+
+        if not plan_instance_id:
+            return None, {'error': 'plan instance cannot be empty'}
+
+        if self.is_valid_client():
+            url = wsutils.get_api_url(
+                self.credentials.rule_engine_protocol, self.credentials.rule_engine_domain)
+            if url:
+                url += "v1/account/plan-executions/"+plan_instance_id
+                responseJson = authutils.with_retry_for_auth_failure(wsutils.get)(
+                    self, url, query_dict, self.auth_token, self.security_ctx)
+
+                if dictutils.is_valid_key(responseJson, "error"):
+                    errors = responseJson
+
+                if dictutils.is_valid_array(responseJson, constants.Items):
+                    plan_instances = utils.from_list(
+                        ruleengine.RuleEnginePlanRun.from_dict, responseJson.get(constants.Items))
+                    if plan_instances:
+                        plan_instance = plan_instances[0]
+
+        return plan_instance, errors
+
+    def get_file_from_rule_engine(self, file_hash: str, return_format: str = utils.ReportDataType.DATAFRAME):
+        final_data = errors = None
+
+        if not file_hash:
+            return None, {'error': 'file hash cannot be empty'}
+
+        if self.is_valid_client():
+            url = wsutils.get_api_url(
+                self.credentials.rule_engine_protocol, self.credentials.rule_engine_domain)
+            if url:
+                url += "url-hash/download/"+file_hash
+                response_json = authutils.with_retry_for_auth_failure(wsutils.get)(
+                    self, url, None, self.auth_token, self.security_ctx)
+
+                if dictutils.is_valid_key(response_json, "error"):
+                    errors = response_json
+
+                if dictutils.is_valid_key(response_json, 'FileName') and 'FileContent' in response_json:
+                    file_byts = response_json['FileContent']
+                    data = base64.b64decode(file_byts)
+
+                    if return_format == utils.ReportDataType.JSON:
+                        final_data = json.loads(data.decode('utf-8'))
+
+                    if return_format == utils.ReportDataType.DATAFRAME:
+                        if '.csv' in response_json['FileName']:
+                            s = str(data, 'utf-8')
+                            dataset = io.StringIO(s)
+                            df = pd.read_csv(dataset)
+                            final_data = df
+                        elif '.parquet' in response_json['FileName']:
+                            dataset = io.BytesIO(data)
+                            final_data = pd.read_parquet(dataset)
+                        else:
+                            decodes_str = data.decode('utf-8')
+                            decoded_elem = json.loads(data.decode('utf-8'))
+                            if isinstance(decoded_elem, dict):
+                                decoded_elem = [decoded_elem]
+
+                            final_data = pd.DataFrame(decoded_elem)
+
+        return final_data, errors
+
+    def get_files_from_rule_engine(self, plan_instance_id: str, files_to_be_fetch: list = None, return_format=utils.ReportDataType.DATAFRAME):
+        plan_instance, error = self.get_rule_engine_plan_instance(
+            plan_instance_id=plan_instance_id, query_dict=None)
+        output_dict = dict()
+        if error is None:
+            controls = []
+            plan_instance_dict = plan_instance.to_dict()
+            if (dictutils.is_valid_key(plan_instance_dict, 'ID') and dictutils.is_valid_array(plan_instance_dict, 'Controls')):
+                controls = [{"Controls": plan_instance_dict['Controls']}]
+            control_meta, instances, files_to_fetch_datas = ruleengineutils.get_meta_data_from_report(
+                controls, files_to_be_fetched=files_to_be_fetch,  return_format=return_format)
+            if files_to_fetch_datas and bool(files_to_fetch_datas):
+                report_data_dict = {}
+                for file_item in files_to_fetch_datas:
+                    previous_data = []
+                    if return_format == utils.ReportDataType.DATAFRAME and file_item['fileName'] in report_data_dict:
+                        previous_data = report_data_dict[file_item['fileName']]
+                    current_data, error = self.get_file_from_rule_engine(
+                        file_item["fileHash"], return_format)
+                    if error is None:
+                        if len(previous_data) > 0:
+                            if isinstance(previous_data, dict):
+                                current_data.extend(previous_data)
+                            elif isinstance(previous_data, pd.DataFrame):
+                                current_data.append(
+                                    previous_data, ignore_index=True)
+                        output_dict[file_item['fileName']] = current_data
+        return output_dict, error
 
 
 def client_from_dict(s: Any) -> Client:

@@ -9,6 +9,14 @@ import base64
 import pyarrow as pa
 from compliancecow.models import cowreport
 
+from enum import Enum
+
+
+class ReportDataType(Enum):
+    DATAFRAME = 1
+    JSON = 2
+    STRING = 3
+
 
 T = TypeVar("T")
 EnumT = TypeVar("EnumT", bound=Enum)
