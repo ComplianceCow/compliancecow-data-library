@@ -13,7 +13,6 @@ import io
 
 from compliancecow.utils import constants, dictutils, authutils, utils, wsutils, validateutils, ruleengineutils
 from compliancecow.models import configuration, cowreport, ruleengine
-# from compliancecow.data import metadata
 
 
 T = TypeVar("T")
@@ -451,12 +450,9 @@ class Client:
 
                 if dictutils.is_valid_key(responseJson, "error"):
                     errors = responseJson
-
+                    
                 if dictutils.is_valid_array(responseJson, constants.Items):
-                    plan_instances = utils.from_list(
-                        ruleengine.RuleEnginePlanRun.from_dict, responseJson.get(constants.Items))
-                    if plan_instances:
-                        plan_instance = plan_instances[0]
+                    plan_instance = responseJson[constants.Items][0]
 
         return plan_instance, errors
 
@@ -509,9 +505,8 @@ class Client:
         output_dict = dict()
         if error is None:
             controls = []
-            plan_instance_dict = plan_instance.to_dict()
-            if (dictutils.is_valid_key(plan_instance_dict, 'ID') and dictutils.is_valid_array(plan_instance_dict, 'Controls')):
-                controls = [{"Controls": plan_instance_dict['Controls']}]
+            if (dictutils.is_valid_key(plan_instance, 'ID') and dictutils.is_valid_array(plan_instance, 'Controls')):
+                controls = [{"Controls": plan_instance['Controls']}]
             control_meta, instances, files_to_fetch_datas = ruleengineutils.get_meta_data_from_report(
                 controls, files_to_be_fetched=files_to_be_fetch,  return_format=return_format)
             if files_to_fetch_datas and bool(files_to_fetch_datas):
