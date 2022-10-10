@@ -551,7 +551,6 @@ class Client:
     def get_ruleset_files_from_rule_engine(self, ruleset_id: str, files_to_be_fetch: list = None, return_format=utils.ReportDataType.DATAFRAME):
         ruleset_instance, error = self.get_rule_engine_ruleset_instance(
             ruleset_id=ruleset_id, query_dict=None)
-        
         if error is None:
             controls = []
             if isinstance(ruleset_instance,list) and bool(ruleset_instance):
