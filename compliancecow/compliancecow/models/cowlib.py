@@ -507,7 +507,6 @@ class Client:
                 controls, files_to_be_fetched=files_to_be_fetch,  return_format=return_format)
             
             if files_to_fetch_datas and bool(files_to_fetch_datas):
-                print("files_to_fetch_datas",files_to_fetch_datas)
                 report_data_dict = {}
                 for file_item in files_to_fetch_datas:
                     previous_data = []
@@ -548,19 +547,15 @@ class Client:
         ruleset_instance, error = self.get_rule_engine_ruleset_instance(
             ruleset_id=ruleset_id, query_dict=None)
         output_dict = dict()
-        print("rule_instance",bool(ruleset_instance))
         if error is None:
             controls = []
             if isinstance(ruleset_instance,list) and bool(ruleset_instance):
                 controls = {"Controls": ruleset_instance}
-            print("contrl has data",bool(controls))
-            print("files_to_be_fetch",bool(files_to_be_fetch))
             
             instances, files_to_fetch_datas = ruleengineutils.get_meta_data_from_ruleset_report(
                 controls, files_to_be_fetched=files_to_be_fetch,  return_format=return_format)
             if files_to_fetch_datas and bool(files_to_fetch_datas):
                 report_data_dict = {}
-                print("files_to_fetch_datas",files_to_fetch_datas)
                 for file_item in files_to_fetch_datas:
                     previous_data = []
                     if return_format == utils.ReportDataType.DATAFRAME and file_item['fileName'] in report_data_dict:
@@ -575,7 +570,6 @@ class Client:
                                 current_data.append(
                                     previous_data, ignore_index=True)
                         output_dict[file_item['fileName']] = current_data
-                        print("current data ",current_data)
         return output_dict, error
 def client_from_dict(s: Any) -> Client:
     return Client.from_dict(s)
