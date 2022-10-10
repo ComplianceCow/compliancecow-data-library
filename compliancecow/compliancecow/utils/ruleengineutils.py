@@ -176,7 +176,7 @@ def get_filedata_and_instancedata(i,files_to_be_fetched=[],instances=[],file_dat
                 if dictutils.is_valid_key(i, 'ControlID'):
                     file_data['ControlID'] = i["ControlID"]
                 file_datas.append(file_data)
-        return instance_data, file_data             
+        return instance_data, file_datas             
 
 def get_meta_data_from_ruleset_report(controls, files_to_be_fetched=None,  instances=None, file_datas=None, return_format=utils.ReportDataType.DATAFRAME):
 
