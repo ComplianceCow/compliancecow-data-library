@@ -139,43 +139,64 @@ def get_meta_data_from_report(controls, files_to_be_fetched=None, control_meta=N
 
                 control_meta.append(control_data)
 
-                for i in control['RuleSetOutput']['ruleOutputs']:
-                    if (dictutils.is_valid_key(i, 'ruleiovalues') and dictutils.is_valid_key(i['ruleiovalues'], 'outputFiles')):
-
-                        instance_data = {
-                            'controlId': control['ControlID']
-                        }
-
-                        if dictutils.is_valid_key(i, 'instanceName'):
-                            instance_data['instanceName'] = i["instanceName"]
-
-                        if dictutils.is_valid_key(i, 'state'):
-                            instance_data['state'] = i["state"]
-
-                        if dictutils.is_valid_key(i, 'complianceStatus'):
-                            instance_data['complianceStatus'] = i["complianceStatus"]
-
-                        if dictutils.is_valid_key(i, 'compliancePCT'):
-                            instance_data['compliancePCT'] = i["compliancePCT"]
-
-                        instances.append(instance_data)
-
-                        for key, value in i['ruleiovalues']['outputFiles'].items():
-                            filename = ""
-                            if value:
-                                filename = get_file_name_from_report_data(
-                                    value)
-                            if filename and not ("OtherOutputs.json" in value or "RuleIOSummary.json" in value or (len(files_to_be_fetched) > 0 and filename not in files_to_be_fetched)):
-
-                                file_data = {
-                                    'controlId': control['ControlID'],
-                                    'instanceName': i["instanceName"],
-                                    "fileName": filename,
-                                    "fileHash": key
-                                }
-                                file_datas.append(file_data)
+                for ruleoutput in control['RuleSetOutput']['ruleOutputs']:
+                    get_filedata_and_instancedata(ruleoutput,files_to_be_fetched,instances,file_datas)
     return control_meta, instances, file_datas
 
+def get_filedata_and_instancedata(ruleoutput,files_to_be_fetched=None,instances=None,file_datas=None):
+    if not instances:
+        instances = []
+    if not file_datas:
+        file_datas =[]
+    if (dictutils.is_valid_key(ruleoutput, 'ruleiovalues') and dictutils.is_valid_key(['ruleiovalues'], 'outputFiles')):
+        instance_data = {}
+        if dictutils.is_valid_key(ruleoutput, 'ControlID'):
+            instance_data['ControlID'] = ruleoutput["ControlID"]
+        if dictutils.is_valid_key(ruleoutput, 'instanceName'):
+            instance_data['instanceName'] = ruleoutput["instanceName"]
+
+        if dictutils.is_valid_key(ruleoutput, 'state'):
+            instance_data['state'] = ruleoutput["state"]
+
+        if dictutils.is_valid_key(ruleoutput, 'complianceStatus'):
+            instance_data['complianceStatus'] = ruleoutput["complianceStatus"]
+
+        if dictutils.is_valid_key(i, 'compliancePCT'):
+            instance_data['compliancePCT'] = ruleoutput["compliancePCT"]
+
+        instances.append(instance_data)
+
+        for key, value in ruleoutput['ruleiovalues']['outputFiles'].items():
+            filename = ""
+            if value:
+                filename = get_file_name_from_report_data(
+                    value)
+            if filename and not ("OtherOutputs.json" in value or "RuleIOSummary.json" in value or (len(files_to_be_fetched) > 0 and filename not in files_to_be_fetched)):
+                
+                file_data = {
+                    'instanceName': ruleoutput["instanceName"],
+                    "fileName": filename,
+                    "fileHash": key
+                }
+                if dictutils.is_valid_key(ruleoutput, 'ControlID'):
+                    file_data['ControlID'] = ruleoutput["ControlID"]
+                file_datas.append(file_data)
+        return           
+
+def get_meta_data_from_ruleset_report(controls, files_to_be_fetched=None,  instances=None, file_datas=None, return_format=utils.ReportDataType.DATAFRAME):
+
+    if files_to_be_fetched is None:
+        files_to_be_fetched = []
+    if instances is None:
+        instances = []
+    if file_datas is None:
+        file_datas = []
+    
+    for ruleoutput in controls["Controls"]:
+        instance,file_data=get_filedata_and_instancedata(ruleoutput,files_to_be_fetched=files_to_be_fetched,instances=instances,file_datas=file_datas)
+    instances.append(instance)
+    file_datas.append(file_data)
+    return instances,file_datas
 
 def get_file_data(plan_exec_id, file_name, header, available_file_infos: list = None, return_format=utils.ReportDataType.DATAFRAME):
     report_data = fetch_report(plan_exec_id, headers=header)
@@ -197,12 +218,10 @@ def get_file_data(plan_exec_id, file_name, header, available_file_infos: list = 
                         break
     return report_data_dict
 
-
 def get_file_name_from_report_data(rule_op_file_name):
     val = rule_op_file_name.split('-')  # Need to be change to regex
     val = val[0]
     return val
-
 
 def get_data_from_rule_engine(fileHash=None, control_id=None, instance_name=None, return_format=None, header=None):
     data = {}

@@ -19,3 +19,4 @@ CLIEnvironment = os.getenv(
 RuleEngineURL = "%s://%s" % (RuleEngineProtocol, RuleEngineHostName)
 
 Items = "items"
+RuleOutputs = "ruleOutputs"
