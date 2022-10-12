@@ -139,30 +139,34 @@ def get_meta_data_from_report(controls, files_to_be_fetched=None, control_meta=N
 
                 control_meta.append(control_data)
 
-                for i in control['RuleSetOutput']['ruleOutputs']:
-                    get_filedata_and_instancedata(i,files_to_be_fetched,instances,file_datas)
+                for ruleoutput in control['RuleSetOutput']['ruleOutputs']:
+                    get_filedata_and_instancedata(ruleoutput,files_to_be_fetched,instances,file_datas)
     return control_meta, instances, file_datas
 
-def get_filedata_and_instancedata(i,files_to_be_fetched=[],instances=[],file_datas=[]):
-    if (dictutils.is_valid_key(i, 'ruleiovalues') and dictutils.is_valid_key(i['ruleiovalues'], 'outputFiles')):
+def get_filedata_and_instancedata(ruleoutput,files_to_be_fetched=None,instances=None,file_datas=None):
+    if not instances:
+        instances = []
+    if not file_datas:
+        file_datas =[]
+    if (dictutils.is_valid_key(ruleoutput, 'ruleiovalues') and dictutils.is_valid_key(['ruleiovalues'], 'outputFiles')):
         instance_data = {}
-        if dictutils.is_valid_key(i, 'ControlID'):
-            instance_data['ControlID'] = i["ControlID"]
-        if dictutils.is_valid_key(i, 'instanceName'):
-            instance_data['instanceName'] = i["instanceName"]
+        if dictutils.is_valid_key(ruleoutput, 'ControlID'):
+            instance_data['ControlID'] = ruleoutput["ControlID"]
+        if dictutils.is_valid_key(ruleoutput, 'instanceName'):
+            instance_data['instanceName'] = ruleoutput["instanceName"]
 
-        if dictutils.is_valid_key(i, 'state'):
-            instance_data['state'] = i["state"]
+        if dictutils.is_valid_key(ruleoutput, 'state'):
+            instance_data['state'] = ruleoutput["state"]
 
-        if dictutils.is_valid_key(i, 'complianceStatus'):
-            instance_data['complianceStatus'] = i["complianceStatus"]
+        if dictutils.is_valid_key(ruleoutput, 'complianceStatus'):
+            instance_data['complianceStatus'] = ruleoutput["complianceStatus"]
 
         if dictutils.is_valid_key(i, 'compliancePCT'):
-            instance_data['compliancePCT'] = i["compliancePCT"]
+            instance_data['compliancePCT'] = ruleoutput["compliancePCT"]
 
         instances.append(instance_data)
 
-        for key, value in i['ruleiovalues']['outputFiles'].items():
+        for key, value in ruleoutput['ruleiovalues']['outputFiles'].items():
             filename = ""
             if value:
                 filename = get_file_name_from_report_data(
@@ -170,12 +174,12 @@ def get_filedata_and_instancedata(i,files_to_be_fetched=[],instances=[],file_dat
             if filename and not ("OtherOutputs.json" in value or "RuleIOSummary.json" in value or (len(files_to_be_fetched) > 0 and filename not in files_to_be_fetched)):
                 
                 file_data = {
-                    'instanceName': i["instanceName"],
+                    'instanceName': ruleoutput["instanceName"],
                     "fileName": filename,
                     "fileHash": key
                 }
-                if dictutils.is_valid_key(i, 'ControlID'):
-                    file_data['ControlID'] = i["ControlID"]
+                if dictutils.is_valid_key(ruleoutput, 'ControlID'):
+                    file_data['ControlID'] = ruleoutput["ControlID"]
                 file_datas.append(file_data)
         return           
 
@@ -188,8 +192,10 @@ def get_meta_data_from_ruleset_report(controls, files_to_be_fetched=None,  insta
     if file_datas is None:
         file_datas = []
     
-    for control in controls["Controls"]:
-        get_filedata_and_instancedata(control,files_to_be_fetched=files_to_be_fetched,instances=instances,file_datas=file_datas)
+    for ruleoutput in controls["Controls"]:
+        instance,file_data=get_filedata_and_instancedata(ruleoutput,files_to_be_fetched=files_to_be_fetched,instances=instances,file_datas=file_datas)
+    instances.append(instance)
+    file_datas.append(file_data)
     return instances,file_datas
 
 def get_file_data(plan_exec_id, file_name, header, available_file_infos: list = None, return_format=utils.ReportDataType.DATAFRAME):
