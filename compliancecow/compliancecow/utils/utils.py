@@ -131,7 +131,7 @@ def modify_plan_instances(plan_instances=None):
     if plan_instances:
         for plan_instance in plan_instances:
             add_plan_details_in_elements(
-                plan_instance.controls, plan_instance.plan_id, plan_instance.id)
+                plan_instance.controls, plan_instance.assesment_id, plan_instance.id)
 
 
 def add_plan_details_in_elements(controls=None, plan_id=None, plan_instance_id=None):
@@ -143,7 +143,7 @@ def add_plan_details_in_elements(controls=None, plan_id=None, plan_instance_id=N
             else:
                 if control.evidences:
                     for evidence in control.evidences:
-                        evidence.plan_id = plan_id
+                        evidence.assesment_id = plan_id
                         evidence.plan_instance_id = plan_instance_id
                         evidence.plan_control_id = control.control_id
 

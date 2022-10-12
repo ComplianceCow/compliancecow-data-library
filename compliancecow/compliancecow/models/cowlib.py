@@ -191,36 +191,37 @@ class Client:
     def is_valid_client(self):
         return self.auth_token or (self.security_ctx and isinstance(self.security_ctx, dict) and bool(self.security_ctx))
 
-    def get_plans(self, ids=None, is_base_fields_only=True, name=None) -> List['Plan'] and dict:
-        plans = errors = None
+    def get_assesments(self, assesment_ids: list = None, assesment_name: str = None, is_base_fields_only: bool = True) -> List['Assesment'] and dict:
+        plans, errors = [], None
         if self.is_valid_client():
             url = wsutils.get_api_url(
                 self.credentials.protocol, self.credentials.domain)
             if url:
                 url += "v1/plans"
                 querydict = dict()
-                if ids:
-                    ids = list(set(validateutils.get_valid_uuids(ids)))
-                    querydict['ids'] = ids
-                if name:
-                    querydict['name'] = name
+                if assesment_ids:
+                    assesment_ids = list(
+                        set(validateutils.get_valid_uuids(assesment_ids)))
+                    querydict['ids'] = assesment_ids
+                if assesment_name:
+                    querydict['name'] = assesment_name
                 respJson = authutils.with_retry_for_auth_failure(
                     wsutils.get)(self, url, querydict, self.auth_token, self.security_ctx)
-                if dictutils.is_valid_key(respJson, 'error') or not dictutils.is_valid_array(respJson, constants.Items):
+                if dictutils.is_valid_key(respJson, 'error'):
                     errors = respJson
                 if dictutils.is_valid_array(respJson, constants.Items):
                     plans = utils.from_list(
-                        Plan.from_dict, respJson.get(constants.Items))
+                        Assesment.from_dict, respJson.get(constants.Items))
         return plans, errors
 
-    def get_plan_instances(self, plan=None, plan_id=None, ids=None, from_date=None, to_date=None, is_base_fields_only=True, name=None) -> List['PlanInstance'] and dict:
+    def get_assesment_runs(self, assesment=None, assesment_id: str = None, assesment_run_ids: list = None, assesment_run_name: str = None, from_date: str = None, to_date: str = None, is_base_fields_only: bool = True) -> List['AssesmentRun'] and dict:
         # error handle for token expiry with try catch or with exec.
 
-        if plan is None and plan_id is None and name is None:
-            return None, {'error': 'Plan, name and PlanID all cannot be empty'}
+        if assesment is None and assesment_id is None and assesment_run_name is None and not assesment_run_ids:
+            return None, {'error': 'Assesment Object, AssesmentID, Assesment name, Assesment run ids and Assesment name all cannot be empty'}
 
-        if plan_id is None and plan is not None:
-            plan_id = plan.id
+        if assesment_id is None and assesment is not None:
+            assesment_id = assesment.id
 
         plan_instances = errors = None
         if self.is_valid_client():
@@ -228,11 +229,14 @@ class Client:
                 self.credentials.protocol, self.credentials.domain)
             if url:
                 url += "v1/plan-instances"
-                plan_ids = [str(plan_id)]
+                plan_ids = None
+                if assesment_id:
+                    plan_ids = [str(assesment_id)]
                 querydict = dict()
-                if ids:
-                    ids = list(set(validateutils.get_valid_uuids(ids)))
-                    querydict['ids'] = ids
+                if assesment_run_ids:
+                    assesment_run_ids = list(
+                        set(validateutils.get_valid_uuids(assesment_run_ids)))
+                    querydict['ids'] = assesment_run_ids
                 if plan_ids:
                     plan_ids = list(
                         set(validateutils.get_valid_uuids(plan_ids)))
@@ -241,16 +245,16 @@ class Client:
                     querydict['created_at_start_time'] = from_date
                 if to_date:
                     querydict['created_at_end_time'] = to_date
-                if name:
-                    querydict['starts_with'] = name
+                if assesment_run_name:
+                    querydict['starts_with'] = assesment_run_name
 
                 respJson = authutils.with_retry_for_auth_failure(wsutils.get)(
                     self, url, querydict, self.auth_token, self.security_ctx)
-                if dictutils.is_valid_key(respJson, 'error') or not dictutils.is_valid_array(respJson, constants.Items):
+                if dictutils.is_valid_key(respJson, 'error'):
                     errors = respJson
                 if dictutils.is_valid_array(respJson, constants.Items):
                     plan_instances = utils.from_list(
-                        PlanInstance.from_dict, respJson.get(constants.Items))
+                        AssesmentRun.from_dict, respJson.get(constants.Items))
 
                     utils.modify_plan_instances(plan_instances)
 
@@ -269,7 +273,7 @@ class Client:
                 url += "v1/datahandler/fetch-data"
                 reqDict = {
                     "fileName": evidence.file_name,
-                    "planGUID": str(evidence.plan_id),
+                    "planGUID": str(evidence.assesment_id),
                     "planExecGUID": str(evidence.plan_instance_id),
                     "controlGUID": str(evidence.plan_control_id),
                     "templateType": "evidence",
@@ -315,13 +319,13 @@ class Client:
 
         return configurations, errors
 
-    def get_dashboard_categories(self, plan_id, plan_name=None) -> List[Any] and dict:
+    def get_dashboard_categories(self, assesment_id, plan_name=None) -> List[Any] and dict:
         dashboard_categories = errors = None
         if self.is_valid_client():
             url = wsutils.get_api_url(
                 self.credentials.protocol, self.credentials.domain)
             if url:
-                url += "v1/plans/"+plan_id+"/categories/"
+                url += "v1/plans/"+assesment_id+"/categories/"
                 responseJson = authutils.with_retry_for_auth_failure(wsutils.get)(
                     self, url, None, self.auth_token, self.security_ctx)
 
@@ -334,13 +338,13 @@ class Client:
 
         return dashboard_categories, errors
 
-    def get_dashboards(self, plan_id, category_id) -> List[Any] and dict:
+    def get_dashboards(self, assesment_id, category_id) -> List[Any] and dict:
         dashboards = errors = None
         if self.is_valid_client():
             url = wsutils.get_api_url(
                 self.credentials.protocol, self.credentials.domain)
             if url:
-                url += "v1/plans/"+plan_id+"/categories/"+category_id+"/dashboards/"
+                url += "v1/plans/"+assesment_id+"/categories/"+category_id+"/dashboards/"
                 responseJson = authutils.with_retry_for_auth_failure(wsutils.get)(
                     self, url, None, self.auth_token, self.security_ctx)
 
@@ -353,7 +357,7 @@ class Client:
 
         return dashboards, errors
 
-    def get_reports(self, plan_id=None, report_id=None, report_name=None, dashboard_id=None, category_id=None, tags='report'):
+    def get_reports(self, assesment_id=None, report_id=None, report_name=None, dashboard_id=None, category_id=None, tags='report'):
         reports = errors = None
 
         if self.is_valid_client():
@@ -363,7 +367,7 @@ class Client:
                 url += "v1/report-cards"
                 query_dict = {'reportId': report_id, 'reportName': report_name,
                               'dashboardId': dashboard_id, 'categoryId': category_id, 'tags': tags,
-                              "planId": plan_id}
+                              "planId": assesment_id}
 
                 responseJson = authutils.with_retry_for_auth_failure(wsutils.get)(
                     self, url, query_dict, self.auth_token, self.security_ctx)
@@ -455,13 +459,13 @@ class Client:
         plan_instance = errors = None
 
         if not plan_instance_id:
-            return None, {'error': 'plan instance cannot be empty'}
+            return None, {'error': 'assesment instance cannot be empty'}
 
         if self.is_valid_client():
             url = wsutils.get_api_url(
                 self.credentials.rule_engine_protocol, self.credentials.rule_engine_domain)
             if url:
-                url += "v1/account/plan-executions/"+plan_instance_id
+                url += "v1/account/assesment-executions/"+plan_instance_id
                 responseJson = authutils.with_retry_for_auth_failure(wsutils.get)(
                     self, url, query_dict, self.auth_token, self.security_ctx)
 
@@ -573,7 +577,7 @@ class Evidence:
     file_name: str
     type: str
     plan_instance_control_id: UUID
-    plan_id: UUID
+    assesment_id: UUID
     plan_instance_id: UUID
     plan_control_id: UUID
     security_ctx: dict
@@ -581,14 +585,14 @@ class Evidence:
     compliance_weight__: int
     compliance_status__: str
 
-    def __init__(self, id: UUID, name: str, description: str, file_name: str, type: str, plan_instance_control_id: UUID, plan_id: UUID, plan_instance_id: UUID, plan_control_id: UUID, compliance_pct__: int, compliance_weight__: int, compliance_status__: str, security_ctx: dict = None) -> None:
+    def __init__(self, id: UUID, name: str, description: str, file_name: str, type: str, plan_instance_control_id: UUID, assesment_id: UUID, plan_instance_id: UUID, plan_control_id: UUID, compliance_pct__: int, compliance_weight__: int, compliance_status__: str, security_ctx: dict = None) -> None:
         self.id = id
         self.name = name
         self.description = description
         self.file_name = file_name
         self.type = type
         self.plan_instance_control_id = plan_instance_control_id
-        self.plan_id = plan_id
+        self.assesment_id = assesment_id
         self.plan_instance_id = plan_instance_id
         self.plan_control_id = plan_control_id
         self.security_ctx = security_ctx
@@ -606,7 +610,7 @@ class Evidence:
                 url += "v1/datahandler/fetch-data"
                 reqDict = {
                     "fileName": self.file_name,
-                    "planGUID": str(self.plan_id),
+                    "planGUID": str(self.assesment_id),
                     "planExecGUID": str(self.plan_instance_id),
                     "controlGUID": str(self.plan_control_id),
                     "templateType": "evidence",
@@ -631,7 +635,7 @@ class Evidence:
     def from_dict(obj: Any) -> 'Evidence' or None:
         evidence = None
         if isinstance(obj, dict):
-            id = name = description = file_name = type = plan_instance_control_id = plan_id = plan_instance_id = plan_control_id = compliance_pct__ = compliance_weight__ = compliance_status__ = None
+            id = name = description = file_name = type = plan_instance_control_id = assesment_id = plan_instance_id = plan_control_id = compliance_pct__ = compliance_weight__ = compliance_status__ = None
             if dictutils.is_valid_key(obj, "id"):
                 id = UUID(obj.get("id"))
             if dictutils.is_valid_key(obj, "name"):
@@ -646,7 +650,7 @@ class Evidence:
                 plan_instance_control_id = UUID(
                     obj.get("planInstanceControlId"))
             if dictutils.is_valid_key(obj, "planId"):
-                plan_id = UUID(obj.get("planId"))
+                assesment_id = UUID(obj.get("planId"))
             if dictutils.is_valid_key(obj, "planInstanceId"):
                 plan_instance_id = UUID(obj.get("planInstanceId"))
             if dictutils.is_valid_key(obj, "planControlId"):
@@ -661,7 +665,7 @@ class Evidence:
                 compliance_status__ = utils.from_str(
                     obj.get("complianceStatus__"))
             evidence = Evidence(id, name, description,
-                                file_name, type, plan_instance_control_id, plan_id, plan_instance_id, plan_control_id, compliance_pct__, compliance_weight__, compliance_status__)
+                                file_name, type, plan_instance_control_id, assesment_id, plan_instance_id, plan_control_id, compliance_pct__, compliance_weight__, compliance_status__)
         return evidence
 
     def to_dict(self) -> dict:
@@ -682,9 +686,9 @@ class Evidence:
         if self.plan_instance_id:
             result["planInstanceId"] = str(
                 self.plan_instance_id)
-        if self.plan_id:
+        if self.assesment_id:
             result["planId"] = str(
-                self.plan_id)
+                self.assesment_id)
         if self.plan_control_id:
             result["planControlId"] = str(
                 self.plan_control_id)
@@ -918,7 +922,7 @@ class Note:
         return result
 
 
-class PlanInstanceControl:
+class AssesmentRunControl:
     id: UUID
     parent_control_id: UUID
     name: str
@@ -930,7 +934,7 @@ class PlanInstanceControl:
     type: str
     reporting_level_control: bool
     evidences: List[Evidence]
-    controls: List['PlanInstanceControl']
+    controls: List['AssesmentRunControl']
     notes: List[Note]
     control_id: UUID
     plan_instance_id: UUID
@@ -971,7 +975,7 @@ class PlanInstanceControl:
                  type: str, reporting_level_control: bool, evidences: List[Evidence], notes: List[Note], control_id: UUID, plan_instance_id: UUID,
                  initiated_by: UUID, started: datetime, ended: datetime, cn_control_execution_start_time: datetime, cn_control_execution_end_time: datetime,
                  cn_synthesizer_start_time: datetime, cn_synthesizer_end_time: datetime, execution_status: str, leaf_control: bool, tags: dict,
-                 controls: List['PlanInstanceControl'], check_lists: List[CheckList], cn_plan_id: UUID, config_id: UUID, cn_compliance_status: str,
+                 controls: List['AssesmentRunControl'], check_lists: List[CheckList], cn_plan_id: UUID, config_id: UUID, cn_compliance_status: str,
                  cn_compliance_pct: int, plan_execution_summary: str, velocity_to_impact: str, likelihood: str, vulnerability: str, impact: str,
                  imputed_weight: int, user_selected_weight: int,  computed_score: int, computed_weight: int, cn_plan_execution_id: UUID,
                  compliance_pct__: int, compliance_weight__: int, compliance_status__: str, user_selected_compliance_pct__: int,
@@ -1025,7 +1029,7 @@ class PlanInstanceControl:
         self.total_weight__ = total_weight__
 
     @staticmethod
-    def from_dict(obj: Any) -> 'PlanInstanceControl' or None:
+    def from_dict(obj: Any) -> 'AssesmentRunControl' or None:
         plan_instance_control = None
         if isinstance(obj, dict):
             id = parent_control_id = name = displayable = alias = priority = stage = status = type = reporting_level_control = evidences = notes = control_id = plan_instance_id = initiated_by = started = ended = cn_control_execution_start_time = cn_control_execution_end_time = cn_synthesizer_start_time = cn_synthesizer_end_time = execution_status = leaf_control = tags = controls = check_lists = None
@@ -1087,7 +1091,7 @@ class PlanInstanceControl:
                 tags = obj.get("tags")
             if dictutils.is_valid_array(obj, "controls"):
                 controls = utils.from_list(
-                    PlanInstanceControl.from_dict, obj.get("controls"))
+                    AssesmentRunControl.from_dict, obj.get("controls"))
             if dictutils.is_valid_array(obj, "checklists"):
                 check_lists = utils.from_list(
                     CheckList.from_dict, obj.get("checklists"))
@@ -1152,7 +1156,7 @@ class PlanInstanceControl:
                 total_weight__ = utils.from_int(
                     obj.get("totalWeight__"))
 
-            plan_instance_control = PlanInstanceControl(id, parent_control_id, name, displayable, alias, priority, stage, status, type, reporting_level_control, evidences, notes, control_id, plan_instance_id,
+            plan_instance_control = AssesmentRunControl(id, parent_control_id, name, displayable, alias, priority, stage, status, type, reporting_level_control, evidences, notes, control_id, plan_instance_id,
                                                         initiated_by, started, ended, cn_control_execution_start_time, cn_control_execution_end_time, cn_synthesizer_start_time, cn_synthesizer_end_time, execution_status, leaf_control, tags, controls, check_lists,
                                                         cn_plan_id, config_id, cn_compliance_status, cn_compliance_pct, plan_execution_summary, velocity_to_impact, likelihood, vulnerability, impact, imputed_weight, user_selected_weight,  computed_score, computed_weight, cn_plan_execution_id,
                                                         compliance_pct__, compliance_weight__, compliance_status__, user_selected_compliance_pct__, user_selected_compliance_weight__, user_selected_compliance_status__, total_weight__)
@@ -1213,7 +1217,7 @@ class PlanInstanceControl:
             result['tags'] = self.tags
         if self.controls:
             result["controls"] = utils.from_list(lambda x: utils.to_class(
-                PlanInstanceControl, x), self.controls)
+                AssesmentRunControl, x), self.controls)
         if self.check_lists:
             result["checklists"] = utils.from_list(lambda x: utils.to_class(
                 CheckList, x), self.check_lists)
@@ -1269,22 +1273,22 @@ class PlanInstanceControl:
         return result
 
 
-def planinstancecontrol_from_dict(s: Any) -> PlanInstanceControl:
-    return PlanInstanceControl.from_dict(s)
+def planinstancecontrol_from_dict(s: Any) -> AssesmentRunControl:
+    return AssesmentRunControl.from_dict(s)
 
 
-def planinstancecontrol_to_dict(x: PlanInstanceControl) -> Any:
-    return utils.to_class(PlanInstanceControl, x)
+def planinstancecontrol_to_dict(x: AssesmentRunControl) -> Any:
+    return utils.to_class(AssesmentRunControl, x)
 
 
-class PlanInstance:
+class AssesmentRun:
     id: UUID
     name: str
     domain_id: UUID
     org_id: UUID
     group_id: UUID
     description: str
-    plan_id: UUID
+    assesment_id: UUID
     type: str
     config_id: UUID
     from_date: str
@@ -1295,16 +1299,16 @@ class PlanInstance:
     cn_plan_execution_end_time: datetime
     status: str
     initiated_by: UUID
-    controls: List[PlanInstanceControl]
+    controls: List[AssesmentRunControl]
 
-    def __init__(self, id: UUID, name: str, domain_id: UUID, org_id: UUID, group_id: UUID, description: str, plan_id: UUID, type: str, config_id: UUID, from_date: str, to_date: str, started: str, ended: datetime, cn_plan_execution_start_time: datetime, cn_plan_execution_end_time: datetime, status: str, initiated_by: UUID, controls: List[PlanInstanceControl]) -> None:
+    def __init__(self, id: UUID, name: str, domain_id: UUID, org_id: UUID, group_id: UUID, description: str, assesment_id: UUID, type: str, config_id: UUID, from_date: str, to_date: str, started: str, ended: datetime, cn_plan_execution_start_time: datetime, cn_plan_execution_end_time: datetime, status: str, initiated_by: UUID, controls: List[AssesmentRunControl]) -> None:
         self.id = id
         self.name = name
         self.domain_id = domain_id
         self.org_id = org_id
         self.group_id = group_id
         self.description = description
-        self.plan_id = plan_id
+        self.assesment_id = assesment_id
         self.type = type
         self.config_id = config_id
         self.from_date = from_date
@@ -1317,7 +1321,7 @@ class PlanInstance:
         self.initiated_by = initiated_by
         self.controls = controls
 
-    def get_plan_instance_controls(self, along_with_heirarchy=False, having_evidences=False, having_notes=False, having_attachments=False, having_checklists=False, automated=True) -> List[PlanInstanceControl] or None:
+    def get_assesment_run_controls(self, along_with_heirarchy=False, having_evidences=False, having_notes=False, having_attachments=False, having_checklists=False, automated=True) -> List[AssesmentRunControl] or None:
         controls = None
         if along_with_heirarchy:
             controls = utils.fetch_controls(self, having_evidences=having_evidences,
@@ -1328,10 +1332,10 @@ class PlanInstance:
         return controls
 
     @staticmethod
-    def from_dict(obj: Any) -> 'PlanInstance' or None:
+    def from_dict(obj: Any) -> 'AssesmentRun' or None:
         plan_intsnace = None
         if isinstance(obj, dict):
-            id = name = domain_id = org_id = group_id = description = plan_id = type = config_id = from_date = to_date = started = ended = cn_plan_execution_start_time = cn_plan_execution_end_time = status = initiated_by = controls = None
+            id = name = domain_id = org_id = group_id = description = assesment_id = type = config_id = from_date = to_date = started = ended = cn_plan_execution_start_time = cn_plan_execution_end_time = status = initiated_by = controls = None
             if dictutils.is_valid_key(obj, "id"):
                 id = UUID(obj.get("id"))
             if dictutils.is_valid_key(obj, "name"):
@@ -1345,7 +1349,7 @@ class PlanInstance:
             if dictutils.is_valid_key(obj, "description"):
                 description = utils.from_str(obj.get("description"))
             if dictutils.is_valid_key(obj, "planId"):
-                plan_id = UUID(obj.get("planId"))
+                assesment_id = UUID(obj.get("planId"))
             if dictutils.is_valid_key(obj, "type"):
                 type = utils.from_str(obj.get("type"))
             if dictutils.is_valid_key(obj, "configId"):
@@ -1370,8 +1374,8 @@ class PlanInstance:
                 initiated_by = UUID(obj.get("initiatedBy"))
             if dictutils.is_valid_array(obj, "controls"):
                 controls = utils.from_list(
-                    PlanInstanceControl.from_dict, obj.get("controls"))
-            plan_intsnace = PlanInstance(id, name, domain_id, org_id, group_id, description, plan_id, type, config_id, from_date,
+                    AssesmentRunControl.from_dict, obj.get("controls"))
+            plan_intsnace = AssesmentRun(id, name, domain_id, org_id, group_id, description, assesment_id, type, config_id, from_date,
                                          to_date, started, ended, cn_plan_execution_start_time, cn_plan_execution_end_time, status, initiated_by, controls)
         return plan_intsnace
 
@@ -1389,8 +1393,8 @@ class PlanInstance:
             result["groupId"] = str(self.group_id)
         if self.description:
             result["description"] = utils.from_str(self.description)
-        if self.plan_id:
-            result["planId"] = str(self.plan_id)
+        if self.assesment_id:
+            result["planId"] = str(self.assesment_id)
         if self.type:
             result["type"] = utils.from_str(self.type)
         if self.config_id:
@@ -1413,19 +1417,19 @@ class PlanInstance:
             result["initiatedBy"] = str(self.initiated_by)
         if self.controls:
             result["controls"] = utils.from_list(lambda x: utils.to_class(
-                PlanInstanceControl, x), self.controls)
+                AssesmentRunControl, x), self.controls)
         return result
 
 
-def planinstance_from_dict(s: Any) -> PlanInstance:
-    return PlanInstance.from_dict(s)
+def planinstance_from_dict(s: Any) -> AssesmentRun:
+    return AssesmentRun.from_dict(s)
 
 
-def planinstance_to_dict(x: PlanInstance) -> Any:
-    return utils.to_class(PlanInstance, x)
+def planinstance_to_dict(x: AssesmentRun) -> Any:
+    return utils.to_class(AssesmentRun, x)
 
 
-class Plan:
+class Assesment:
     id: UUID
     name: str
     domain_id: UUID
@@ -1433,9 +1437,9 @@ class Plan:
     group_id: UUID
     type: str
     status: str
-    plan_instances: List[PlanInstance]
+    plan_instances: List[AssesmentRun]
 
-    def __init__(self, id: UUID, name: str, domain_id: UUID, org_id: UUID, group_id: UUID, type: str, status: str, plan_instances: List[PlanInstance]) -> None:
+    def __init__(self, id: UUID, name: str, domain_id: UUID, org_id: UUID, group_id: UUID, type: str, status: str, plan_instances: List[AssesmentRun]) -> None:
         self.id = id
         self.name = name
         self.domain_id = domain_id
@@ -1445,8 +1449,8 @@ class Plan:
         self.status = status
 
     @staticmethod
-    def from_dict(obj: Any) -> 'Plan' or None:
-        plan = None
+    def from_dict(obj: Any) -> 'Assesment' or None:
+        assesment = None
         if isinstance(obj, dict):
             id = name = domain_id = org_id = group_id = type = status = plan_instances = None
             if dictutils.is_valid_key(obj, "id"):
@@ -1465,10 +1469,10 @@ class Plan:
                 status = utils.from_str(obj.get("status"))
             if dictutils.is_valid_array(obj, "planInstances"):
                 plan_instances = utils.from_list(
-                    PlanInstance.from_dict, obj.get("planInstances"))
-            plan = Plan(id, name, domain_id, org_id, group_id,
-                        type, status, plan_instances)
-        return plan
+                    AssesmentRun.from_dict, obj.get("planInstances"))
+            assesment = Assesment(id, name, domain_id, org_id, group_id,
+                                  type, status, plan_instances)
+        return assesment
 
     def to_dict(self) -> dict:
         result: dict = {}
@@ -1489,9 +1493,9 @@ class Plan:
         return result
 
 
-def plan_from_dict(s: Any) -> Plan:
-    return Plan.from_dict(s)
+def plan_from_dict(s: Any) -> Assesment:
+    return Assesment.from_dict(s)
 
 
-def plan_to_dict(x: Plan) -> Any:
-    return utils.to_class(Plan, x)
+def plan_to_dict(x: Assesment) -> Any:
+    return utils.to_class(Assesment, x)
