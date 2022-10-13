@@ -140,15 +140,16 @@ def get_meta_data_from_report(controls, files_to_be_fetched=None, control_meta=N
                 control_meta.append(control_data)
 
                 for ruleoutput in control['RuleSetOutput']['ruleOutputs']:
-                    get_filedata_and_instancedata(ruleoutput,files_to_be_fetched,instances,file_datas)
+                    instance,file_data=get_filedata_and_instancedata(ruleoutput,files_to_be_fetched,instances,file_datas)
+                    instances.extend(instance)
+                    file_datas.extend(file_data)
     return control_meta, instances, file_datas
 
-def get_filedata_and_instancedata(ruleoutput,files_to_be_fetched=None,instances=None,file_datas=None):
-    if not instances:
-        instances = []
-    if not file_datas:
-        file_datas =[]
-    if (dictutils.is_valid_key(ruleoutput, 'ruleiovalues') and dictutils.is_valid_key(['ruleiovalues'], 'outputFiles')):
+def get_filedata_and_instancedata(ruleoutput,files_to_be_fetched=None):
+   
+    
+    
+    if (dictutils.is_valid_key(ruleoutput, 'ruleiovalues') and dictutils.is_valid_key(ruleoutput['ruleiovalues'], 'outputFiles')):
         instance_data = {}
         if dictutils.is_valid_key(ruleoutput, 'ControlID'):
             instance_data['ControlID'] = ruleoutput["ControlID"]
@@ -161,13 +162,13 @@ def get_filedata_and_instancedata(ruleoutput,files_to_be_fetched=None,instances=
         if dictutils.is_valid_key(ruleoutput, 'complianceStatus'):
             instance_data['complianceStatus'] = ruleoutput["complianceStatus"]
 
-        if dictutils.is_valid_key(i, 'compliancePCT'):
+        if dictutils.is_valid_key(ruleoutput, 'compliancePCT'):
             instance_data['compliancePCT'] = ruleoutput["compliancePCT"]
 
-        instances.append(instance_data)
-
+        
         for key, value in ruleoutput['ruleiovalues']['outputFiles'].items():
             filename = ""
+            
             if value:
                 filename = get_file_name_from_report_data(
                     value)
@@ -180,11 +181,9 @@ def get_filedata_and_instancedata(ruleoutput,files_to_be_fetched=None,instances=
                 }
                 if dictutils.is_valid_key(ruleoutput, 'ControlID'):
                     file_data['ControlID'] = ruleoutput["ControlID"]
-                file_datas.append(file_data)
-        return           
+        return  instance_data,file_data         
 
 def get_meta_data_from_ruleset_report(controls, files_to_be_fetched=None,  instances=None, file_datas=None, return_format=utils.ReportDataType.DATAFRAME):
-
     if files_to_be_fetched is None:
         files_to_be_fetched = []
     if instances is None:
@@ -193,9 +192,10 @@ def get_meta_data_from_ruleset_report(controls, files_to_be_fetched=None,  insta
         file_datas = []
     
     for ruleoutput in controls["Controls"]:
-        instance,file_data=get_filedata_and_instancedata(ruleoutput,files_to_be_fetched=files_to_be_fetched,instances=instances,file_datas=file_datas)
-    instances.append(instance)
-    file_datas.append(file_data)
+        instance,file_data=get_filedata_and_instancedata(ruleoutput,files_to_be_fetched=files_to_be_fetched)
+        instances.append(instance)
+        file_datas.append(file_data)
+    
     return instances,file_datas
 
 def get_file_data(plan_exec_id, file_name, header, available_file_infos: list = None, return_format=utils.ReportDataType.DATAFRAME):
