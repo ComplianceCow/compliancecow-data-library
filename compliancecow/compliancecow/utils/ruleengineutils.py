@@ -146,9 +146,6 @@ def get_meta_data_from_report(controls, files_to_be_fetched=None, control_meta=N
     return control_meta, instances, file_datas
 
 def get_filedata_and_instancedata(ruleoutput,files_to_be_fetched=None):
-   
-    
-    
     if (dictutils.is_valid_key(ruleoutput, 'ruleiovalues') and dictutils.is_valid_key(ruleoutput['ruleiovalues'], 'outputFiles')):
         instance_data = {}
         if dictutils.is_valid_key(ruleoutput, 'ControlID'):
@@ -168,12 +165,10 @@ def get_filedata_and_instancedata(ruleoutput,files_to_be_fetched=None):
         
         for key, value in ruleoutput['ruleiovalues']['outputFiles'].items():
             filename = ""
-            
             if value:
                 filename = get_file_name_from_report_data(
                     value)
             if filename and not ("OtherOutputs.json" in value or "RuleIOSummary.json" in value or (len(files_to_be_fetched) > 0 and filename not in files_to_be_fetched)):
-                
                 file_data = {
                     'instanceName': ruleoutput["instanceName"],
                     "fileName": filename,
@@ -195,7 +190,6 @@ def get_meta_data_from_ruleset_report(controls, files_to_be_fetched=None,  insta
         instance,file_data=get_filedata_and_instancedata(ruleoutput,files_to_be_fetched=files_to_be_fetched)
         instances.append(instance)
         file_datas.append(file_data)
-    
     return instances,file_datas
 
 def get_file_data(plan_exec_id, file_name, header, available_file_infos: list = None, return_format=utils.ReportDataType.DATAFRAME):

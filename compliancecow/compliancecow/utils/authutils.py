@@ -9,7 +9,6 @@ def authorize_client(client):
         "grant_type": "client_credentials"
     }
     if client.client_id and client.client_secret:
-     
         req_data['client_id'] = client.client_id
         req_data['client_secret'] = client.client_secret
     elif client.credentials.client_id and client.credentials.client_secret:
@@ -19,10 +18,8 @@ def authorize_client(client):
     url_path = wsutils.get_api_url(
         client.credentials.protocol, client.credentials.domain)
     if url_path:
-        
         url_path += "v1/oauth2/token"
         response = requests.post(url_path, data=req_data)
-        
         response_json = response.json()
         if dictutils.is_valid_key(response_json, "tokenType") and dictutils.is_valid_key(response_json, "authToken"):
             client.auth_token = response_json["tokenType"] + \

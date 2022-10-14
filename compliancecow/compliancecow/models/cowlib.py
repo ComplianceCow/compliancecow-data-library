@@ -452,7 +452,6 @@ class Client:
                             current_data.append(
                                 previous_data, ignore_index=True)
                     output_dict[file_item['fileName']] = current_data
-            
             return output_dict,error
         return None, {'error': 'files to fetch cannot be empty'}
     
@@ -463,7 +462,6 @@ class Client:
             return None, {'error': 'assesment instance cannot be empty'}
 
         if self.is_valid_client():
-            
             url = wsutils.get_api_url(
                 self.credentials.rule_engine_protocol, self.credentials.rule_engine_domain)
             if url:
@@ -542,6 +540,7 @@ class Client:
         if self.is_valid_client():
             url = wsutils.get_api_url(
                 self.credentials.rule_engine_protocol, self.credentials.rule_engine_domain)
+            
             if url:
                 url += "ruleset/"+ruleset_id
                 responseJson = authutils.with_retry_for_auth_failure(wsutils.get)(
@@ -550,6 +549,7 @@ class Client:
                     errors = responseJson
                 if dictutils.is_valid_array(responseJson, constants.RuleOutputs):
                     ruleset_instance = responseJson[constants.RuleOutputs]
+        
         return ruleset_instance, errors
     
     def get_ruleset_files_from_rule_engine(self, ruleset_id: str, files_to_be_fetch: list = None, return_format=utils.ReportDataType.DATAFRAME):
@@ -559,6 +559,7 @@ class Client:
             controls = []
             if isinstance(ruleset_instance,list) and bool(ruleset_instance):
                 controls = {"Controls": ruleset_instance}
+            
             instances, files_to_fetch_datas = ruleengineutils.get_meta_data_from_ruleset_report(
                 controls, files_to_be_fetched=files_to_be_fetch,  return_format=return_format)
             output_dict,eror = self.get_data_using_files_to_fetch(files_to_fetch_datas=files_to_fetch_datas,return_format=return_format)
