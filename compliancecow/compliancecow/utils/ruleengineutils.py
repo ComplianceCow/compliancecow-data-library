@@ -188,8 +188,8 @@ def get_meta_data_from_ruleset_report(controls, files_to_be_fetched=None,  insta
     
     for ruleoutput in controls["Controls"]:
         instance,file_data=get_filedata_and_instancedata(ruleoutput,files_to_be_fetched=files_to_be_fetched)
-        instances.append(instance)
-        file_datas.append(file_data)
+        instances.extend(instance)
+        file_datas.extend(file_data)
     return instances,file_datas
 
 def get_file_data(plan_exec_id, file_name, header, available_file_infos: list = None, return_format=utils.ReportDataType.DATAFRAME):
