@@ -3,6 +3,7 @@ from compliancecow.utils import wsutils, constants, dictutils, utils
 import json
 import io
 import base64
+import re
 
 
 def fetch_report(plan_exec_id=None, params=None, auth_token=None, headers=None):
@@ -143,11 +144,12 @@ def get_meta_data_from_report(controls, files_to_be_fetched=None, control_meta=N
                     instance,file_data=get_filedata_and_instancedata(ruleoutput,files_to_be_fetched,instances,file_datas)
                     instances.append(instance)
                     file_datas.append(file_data)
-    return control_meta, instances, file_datas
+        return control_meta, instances, file_datas
 
 def get_filedata_and_instancedata(ruleoutput,files_to_be_fetched=None):
     if (dictutils.is_valid_key(ruleoutput, 'ruleiovalues') and dictutils.is_valid_key(ruleoutput['ruleiovalues'], 'outputFiles')):
         instance_data = {}
+        
         if dictutils.is_valid_key(ruleoutput, 'ControlID'):
             instance_data['ControlID'] = ruleoutput["ControlID"]
         if dictutils.is_valid_key(ruleoutput, 'instanceName'):
@@ -176,8 +178,8 @@ def get_filedata_and_instancedata(ruleoutput,files_to_be_fetched=None):
                 }
                 if dictutils.is_valid_key(ruleoutput, 'ControlID'):
                     file_data['ControlID'] = ruleoutput["ControlID"]
-        return  instance_data,file_data         
-
+                return  instance_data,file_data        
+    return None, None
 def get_meta_data_from_ruleset_report(controls, files_to_be_fetched=None,  instances=None, file_datas=None, return_format=utils.ReportDataType.DATAFRAME):
     if files_to_be_fetched is None:
         files_to_be_fetched = []
@@ -213,7 +215,10 @@ def get_file_data(plan_exec_id, file_name, header, available_file_infos: list = 
     return report_data_dict
 
 def get_file_name_from_report_data(rule_op_file_name):
-    val = rule_op_file_name.split('-')  # Need to be change to regex
+    if rule_op_file_name.find('-')!= -1:
+        val = rule_op_file_name.split('-')# Need to be change to regex
+    else:
+        val = re.split(r'[-.]',rule_op_file_name )  # Need to be change to regex
     val = val[0]
     return val
 

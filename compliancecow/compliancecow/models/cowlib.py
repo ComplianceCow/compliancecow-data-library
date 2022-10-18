@@ -562,6 +562,8 @@ class Client:
             
             instances, files_to_fetch_datas = ruleengineutils.get_meta_data_from_ruleset_report(
                 controls, files_to_be_fetched=files_to_be_fetch,  return_format=return_format)
+            if not files_to_fetch_datas:
+                return None,{"error":"files_to_fetch_datas is empty"}
             output_dict,eror = self.get_data_using_files_to_fetch(files_to_fetch_datas=files_to_fetch_datas,return_format=return_format)
             return output_dict, error
 
