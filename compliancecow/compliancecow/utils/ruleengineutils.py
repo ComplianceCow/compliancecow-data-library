@@ -144,7 +144,7 @@ def get_meta_data_from_report(controls, files_to_be_fetched=None, control_meta=N
                     instance,file_data=get_filedata_and_instancedata(ruleoutput,files_to_be_fetched,instances,file_datas)
                     instances.append(instance)
                     file_datas.append(file_data)
-        return control_meta, instances, file_datas
+    return control_meta, instances, file_datas
 
 def get_filedata_and_instancedata(ruleoutput,files_to_be_fetched=None):
     if (dictutils.is_valid_key(ruleoutput, 'ruleiovalues') and dictutils.is_valid_key(ruleoutput['ruleiovalues'], 'outputFiles')):
