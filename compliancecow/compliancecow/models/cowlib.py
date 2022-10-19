@@ -439,8 +439,8 @@ class Client:
         if errors is None and not bool(errors):
             return cowreport.report_data_from_dict(response), errors
         return None, errors
-    
-    def get_data_using_files_to_fetch(self,files_to_fetch_datas=None,return_format=utils.ReportDataType.DATAFRAME):
+
+    def get_data_using_files_to_fetch(self, files_to_fetch_datas=None, return_format=utils.ReportDataType.DATAFRAME):
         if files_to_fetch_datas and bool(files_to_fetch_datas):
             report_data_dict = {}
             output_dict = dict()
@@ -458,9 +458,9 @@ class Client:
                             current_data.append(
                                 previous_data, ignore_index=True)
                     output_dict[file_item['fileName']] = current_data
-            return output_dict,error
+            return output_dict, error
         return None, {'error': 'files to fetch cannot be empty'}
-    
+
     def get_rule_engine_plan_instance(self, plan_instance_id: str, query_dict: dict = None) -> ruleengine.RuleEnginePlanRun and dict:
         plan_instance = errors = None
 
@@ -477,7 +477,7 @@ class Client:
 
                 if dictutils.is_valid_key(responseJson, "error"):
                     errors = responseJson
-                    
+
                 if dictutils.is_valid_array(responseJson, constants.Items):
                     plan_instance = responseJson[constants.Items][0]
 
@@ -536,9 +536,10 @@ class Client:
                 controls = [{"Controls": plan_instance['Controls']}]
             control_meta, instances, files_to_fetch_datas = ruleengineutils.get_meta_data_from_report(
                 controls, files_to_be_fetched=files_to_be_fetch,  return_format=return_format)
-            output_dict,eror = self.get_data_using_files_to_fetch(files_to_fetch_datas=files_to_fetch_datas,return_format=return_format)
+            output_dict, eror = self.get_data_using_files_to_fetch(
+                files_to_fetch_datas=files_to_fetch_datas, return_format=return_format)
         return output_dict, error
-    
+
     def get_rule_engine_ruleset_instance(self, ruleset_id: str, query_dict: dict = None) -> ruleengine.RuleSetOutput and dict:
         ruleset_instance = errors = None
         if not ruleset_id:
@@ -546,7 +547,7 @@ class Client:
         if self.is_valid_client():
             url = wsutils.get_api_url(
                 self.credentials.rule_engine_protocol, self.credentials.rule_engine_domain)
-            
+
             if url:
                 url += "ruleset/"+ruleset_id
                 responseJson = authutils.with_retry_for_auth_failure(wsutils.get)(
@@ -555,27 +556,32 @@ class Client:
                     errors = responseJson
                 if dictutils.is_valid_array(responseJson, constants.RuleOutputs):
                     ruleset_instance = responseJson[constants.RuleOutputs]
-        
+
         return ruleset_instance, errors
-    
+
     def get_ruleset_files_from_rule_engine(self, ruleset_id: str, files_to_be_fetch: list = None, return_format=utils.ReportDataType.DATAFRAME):
         ruleset_instance, error = self.get_rule_engine_ruleset_instance(
             ruleset_id=ruleset_id, query_dict=None)
         if error is None:
             controls = []
-            if isinstance(ruleset_instance,list) and bool(ruleset_instance):
+            if isinstance(ruleset_instance, list) and bool(ruleset_instance):
                 controls = {"Controls": ruleset_instance}
-            
+
             instances, files_to_fetch_datas = ruleengineutils.get_meta_data_from_ruleset_report(
                 controls, files_to_be_fetched=files_to_be_fetch,  return_format=return_format)
-            output_dict,eror = self.get_data_using_files_to_fetch(files_to_fetch_datas=files_to_fetch_datas,return_format=return_format)
+            output_dict, eror = self.get_data_using_files_to_fetch(
+                files_to_fetch_datas=files_to_fetch_datas, return_format=return_format)
             return output_dict, error
+
 
 def client_from_dict(s: Any) -> Client:
     return Client.from_dict(s)
 
+
 def client_to_dict(x: Client) -> Any:
     return utils.to_class(Client, x)
+
+
 class Evidence:
     id: UUID
     name: str
@@ -706,6 +712,8 @@ class Evidence:
             result["complianceStatus__"] = utils.from_str(
                 self.compliance_pct__)
         return result
+
+
 class CheckList:
     id: UUID
     plan_instance_id: UUID
@@ -806,11 +814,15 @@ class CheckList:
 
         return result
 
+
 def check_list_from_dict(s: Any) -> CheckList:
     return CheckList.from_dict(s)
 
+
 def check_list_to_dict(x: CheckList) -> Any:
     return utils.to_class(CheckList, x)
+
+
 class Tags:
     default: dict()
 
@@ -1336,6 +1348,9 @@ class AssesmentRun:
             controls = utils.fetch_controls_without_hierarchy(self, having_evidences=having_evidences, having_notes=having_notes,
                                                               having_attachments=having_attachments, having_checklists=having_checklists, automated=automated)
         return controls
+
+    def get_plan_instance_controls(self, along_with_heirarchy=False, having_evidences=False, having_notes=False, having_attachments=False, having_checklists=False, automated=True) -> List[AssesmentRunControl] or None:
+        return self.get_assesment_run_controls(along_with_heirarchy=along_with_heirarchy, having_evidences=having_evidences, having_notes=having_notes, having_attachments=having_attachments, having_checklists=having_checklists, automated=automated)
 
     @staticmethod
     def from_dict(obj: Any) -> 'AssesmentRun' or None:
