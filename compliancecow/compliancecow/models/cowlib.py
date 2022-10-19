@@ -214,6 +214,9 @@ class Client:
                         Assesment.from_dict, respJson.get(constants.Items))
         return plans, errors
 
+    def get_plans(self, ids=None, is_base_fields_only=True, name=None) -> List['Assesment'] and dict:
+        return self.get_assesments(assesment_ids=ids, assesment_name=name, is_base_fields_only=is_base_fields_only)
+
     def get_assesment_runs(self, assesment=None, assesment_id: str = None, assesment_run_ids: list = None, assesment_run_name: str = None, from_date: str = None, to_date: str = None, is_base_fields_only: bool = True) -> List['AssesmentRun'] and dict:
         # error handle for token expiry with try catch or with exec.
 
@@ -259,6 +262,9 @@ class Client:
                     utils.modify_plan_instances(plan_instances)
 
         return plan_instances, errors
+
+    def get_plan_instances(self, plan=None, plan_id=None, ids=None, from_date=None, to_date=None, is_base_fields_only=True, name=None) -> List['AssesmentRun'] and dict:
+        return self.get_assesment_runs(assesment=plan, assesment_id=plan_id, assesment_run_ids=ids, from_date=from_date, to_date=to_date, is_base_fields_only=is_base_fields_only, assesment_run_name=name)
 
     def get_evidence_data(self, evidence=None, record_ids=None, owner_type="user", is_user_priority=True, is_src_fetch_call=True) -> pd.DataFrame and dict:
         data = pd.DataFrame
