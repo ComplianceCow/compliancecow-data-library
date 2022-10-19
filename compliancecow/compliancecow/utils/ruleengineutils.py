@@ -216,9 +216,9 @@ def get_file_data(plan_exec_id, file_name, header, available_file_infos: list = 
 
 def get_file_name_from_report_data(rule_op_file_name):
     if rule_op_file_name.find('-')!= -1:
-        val = rule_op_file_name.split('-')# Need to be change to regex
+        val = rule_op_file_name.split('-')
     else:
-        val = re.split(r'[-.]',rule_op_file_name )  # Need to be change to regex
+        val = re.split(r'[-.]',rule_op_file_name ) 
     val = val[0]
     return val
 
