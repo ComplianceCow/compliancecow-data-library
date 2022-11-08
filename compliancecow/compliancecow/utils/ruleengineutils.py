@@ -147,9 +147,9 @@ def get_meta_data_from_report(controls, files_to_be_fetched=None, control_meta=N
     return control_meta, instances, file_datas
 
 def get_filedata_and_instancedata(ruleoutput,files_to_be_fetched=None):
+    instance_data,file_data = None,None
     if (dictutils.is_valid_key(ruleoutput, 'ruleiovalues') and dictutils.is_valid_key(ruleoutput['ruleiovalues'], 'outputFiles')):
-        instance_data = {}
-        
+        instance_data={}
         if dictutils.is_valid_key(ruleoutput, 'ControlID'):
             instance_data['ControlID'] = ruleoutput["ControlID"]
         if dictutils.is_valid_key(ruleoutput, 'instanceName'):
@@ -178,8 +178,9 @@ def get_filedata_and_instancedata(ruleoutput,files_to_be_fetched=None):
                 }
                 if dictutils.is_valid_key(ruleoutput, 'ControlID'):
                     file_data['ControlID'] = ruleoutput["ControlID"]
-                return  instance_data,file_data        
-    return None, None
+                    break
+    return  instance_data,file_data        
+
 def get_meta_data_from_ruleset_report(controls, files_to_be_fetched=None,  instances=None, file_datas=None, return_format=utils.ReportDataType.DATAFRAME):
     if files_to_be_fetched is None:
         files_to_be_fetched = []
