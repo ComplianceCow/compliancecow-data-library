@@ -141,7 +141,7 @@ def get_meta_data_from_report(controls, files_to_be_fetched=None, control_meta=N
                 control_meta.append(control_data)
 
                 for ruleoutput in control['RuleSetOutput']['ruleOutputs']:
-                    instance,file_data=get_filedata_and_instancedata(ruleoutput,files_to_be_fetched,instances,file_datas)
+                    instance,file_data=get_filedata_and_instancedata(ruleoutput,files_to_be_fetched)
                     instances.append(instance)
                     file_datas.append(file_data)
     return control_meta, instances, file_datas
